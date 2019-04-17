@@ -73,7 +73,7 @@ export default {
         return {
             text:'',
             total: 50,
-            article_list:[{},{},{}]
+            detail:{}
         }
     },
     components:{
@@ -92,8 +92,9 @@ export default {
         ref() {
             this.get_data()
         },
-        get_data() {
-            
+        async get_data() {
+            const res = await api.get_help_detail({id: this.$route.query.id})
+            console.log(res)
         }
     },
 }

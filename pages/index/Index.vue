@@ -2,9 +2,9 @@
     <div class="page-index">
         <div class='breadcrumb'>
             <p @click='backYN'>云南省</p>
-            <p v-show='area&&area.length>0'>
+            <p v-show='area.name&&area.name.length>0'>
                 >
-                <span class='blue border-b'>{{area}}</span>
+                <span class='blue border-b'>{{area.name}}</span>
             </p>
             <p class='time'>{{month[0].replace('-','.')}}-{{month[1].replace('-','.')}}</p>
         </div>
@@ -36,7 +36,7 @@
                 </ul>
             </div>
             <div class='map-box'>
-                <Map @chose_area='chose_area' :area='area'></Map>
+                <Map :areaList='areaList'></Map>
                 <img src='static/img/line.png'>
             </div>
             
@@ -64,8 +64,8 @@ export default {
     },
     data() {
         return {
-            area:'',
-            area_code:'',
+            //area:this.$store.state.map.chosed_map.name,
+            // area_code:'',
             month:[],
             options:{
                 disabledDate(time) {
@@ -76,6 +76,12 @@ export default {
             chosedCateId:'',
             scrollIndex:0,
             scrolling:null,//跑马灯计时器
+            areaList:[],
+        }
+    },
+    computed:{
+        area() {
+            return this.$store.state.map.chosed_map
         }
     },
     components:{
@@ -90,6 +96,7 @@ export default {
         if(exmonth<10) exmonth = '0'+exmonth
         this.month = [year+'-' + exmonth, year+'-' + month]
         this.get_cate()
+        this.get_area()
     },
     mounted() {
         this.start()
@@ -138,12 +145,18 @@ export default {
             });
         },
         chose_area(val) {
-            this.area_code = val.id
-            this.area = val.city
+            // this.area_code = val.id
+            // this.area = val.city
         },
         backYN() {
-            this.area_code = ''
-            this.area = ''
+            this.$store.commit('map/SET_CHOSED_MAP', {})
+            // this.area_code = ''
+            // this.area = ''
+        },
+        async get_area() {
+            const res = await api.get_area()
+            console.log(res)
+            this.areaList = res.data
         }
     },
     updated() {
@@ -167,14 +180,14 @@ export default {
         margin-bottom 0
     
 .map-box 
-    height 90%
-    width 45%
+    height 100%
+    width 100%
     padding-top 54px
-    padding-left 15%
     text-align center
+    box-sizing border-box
     img 
         margin-top 40px
-        width:70%
+        width:20%
 
 .cate-list 
     width 20%
@@ -232,10 +245,10 @@ export default {
 .trans 
     transform rotate(180deg)
 
-.content ul{
-  width: 100%;
-  height:100%;
-  margin: 0;
-  padding: 0;
-}
+.content ul
+    width 100%
+    height 100%
+    margin 0
+    padding 0
+
 </style>

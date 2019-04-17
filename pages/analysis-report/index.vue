@@ -19,20 +19,21 @@
                         class='w-260'>
                     </el-input>
                     <ul class='report-ul' v-for='(item, index) in report' :key='index'>
-                        <li v-for='(li, i) in item' :key='i' @click='$router.push("/report-detail")'>
+                        <li v-for='(li, i) in item' :key='i' @click='$router.push("/report-detail?id="+ li.id)'>
                             <div>
-                                <img :src="li.type=='pt'?'static/img/cumpter.png':'static/img/guang.png'">
+                                <img :src="li && li.type=='2'?'static/img/cumpter.png':'static/img/guang.png'">
                             </div>
                             <p>
-                            <i :class='li.type=="pt"?"purple":"red"'>{{li.type == "pt"?"平台":"我的"}}</i>
+                            <i :class='li && li.type=="2"?"purple":"red"'>{{li &&li.type == "2"?"平台":"我的"}}</i>
                             </p>
-                            <h2>{{li.name}}</h2>
-                            <p>{{li.time}}</p>
+                            <h2>{{li.title}}</h2>
+                            <p>{{li.createTime.split('T')[0]}}</p>
                         </li>
                     </ul>
                     <el-pagination
                         layout="prev, pager, next"
                         :total="total"
+                        :page-size='pageSize'
                         class='float-right'>
                     </el-pagination>
                 </el-tab-pane>
@@ -45,15 +46,15 @@
                         class='w-260'>
                     </el-input>
                     <ul class='report-ul' v-for='(item, index) in report' :key='index'>
-                        <li v-for='(li, i) in item' :key='i' @click='$router.push("/report-detail")'>
+                        <li v-for='(li, i) in item' :key='i' @click='$router.push("/report-detail?id="+ li.id)'>
                             <div>
                                 <img src='static/img/cumpter.png'>
                             </div>
                             <p>
                             <i class='purple'>平台</i>
                             </p>
-                            <h2>{{li.name}}</h2>
-                            <p>{{li.time}}</p>
+                            <h2>{{li.title}}</h2>
+                            <p>{{li.createTime}}</p>
                         </li>
                     </ul>
                     <el-pagination
@@ -75,20 +76,21 @@
                     </div>
                     
                     <ul class='report-ul' v-for='(item, index) in report' :key='index'>
-                        <li v-for='(li, i) in item' :key='i' @click='$router.push("/report-detail")'>
+                        <li v-for='(li, i) in item' :key='i' @click='$router.push("/report-detail?id="+ li.id)'>
                             <div>
                                 <img src='static/img/guang.png'>
                             </div>
                             <p>
                             <i class='red'>我的</i>
                             </p>
-                            <h2>{{li.name}}</h2>
-                            <p>{{li.time}}</p>
+                            <h2>{{li.title}}</h2>
+                            <p>{{li.createTime}}</p>
                         </li>
                     </ul>
                     <el-pagination
                         layout="prev, pager, next"
                         :total="total"
+                        @current-change="handleCurrentChange"
                         class='float-right'>
                     </el-pagination>
                 </el-tab-pane>
@@ -180,6 +182,8 @@ export default {
             },
             text:'',
             total: 50,
+            pageNum:1,
+            pageSize:16,
             options:[],
             form:{
                 name:'',
@@ -189,71 +193,7 @@ export default {
             },
             cateList:[],
             areaList:[],
-            report:[[{
-                type:'pt',
-                name:'关于钢材价格的相关分析报告',
-                time: '2019-01-23'
-            },{
-                type:'pt',
-                name:'关于钢筋价格的相关分析报告',
-                time: '2019-01-24'
-            },{
-                type:'my',
-                name:'关于钢管价格的相关分析报告',
-                time: '2019-01-25'
-            },{
-                type:'pt',
-                name:'关于材料价格的相关分析报告',
-                time: '2019-01-26'
-            },{
-                type:'my',
-                name:'关于水泥价格的相关分析报告',
-                time: '2019-01-27'
-            },{
-                type:'pt',
-                name:'关于石灰价格的相关分析报告',
-                time: '2019-01-28'
-            },{
-                type:'my',
-                name:'关于钢材1价格的相关分析报告',
-                time: '2019-01-29'
-            },{
-                type:'my',
-                name:'关于钢材2价格的相关分析报告',
-                time: '2019-01-30'
-            }],[{
-                type:'pt',
-                name:'关于钢材3价格的相关分析报告',
-                time: '2019-02-03'
-            },{
-                type:'my',
-                name:'关于钢材4价格的相关分析报告',
-                time: '2019-02-03'
-            },{
-                type:'pt',
-                name:'关于钢材价格的相关分析报告',
-                time: '2019-01-23'
-            },{
-                type:'my',
-                name:'关于钢材价格的相关分析报告',
-                time: '2019-02-23'
-            },{
-                type:'pt',
-                name:'关于钢材5价格的相关分析报告',
-                time: '2019-02-23'
-            },{
-                type:'pt',
-                name:'关于钢材6价格的相关分析报告',
-                time: '2019-02-23'
-            },{
-                type:'my',
-                name:'关于钢材7价格的相关分析报告',
-                time: '2019-02-23'
-            },{
-                type:'my',
-                name:'关于钢材8价格的相关分析报告',
-                time: '2019-02-23'
-            }]],
+            report:[[],[]],
             activeName:'全部报告',
             dialogFormVisible: false,
             formLabelWidth:'90px'
@@ -263,11 +203,32 @@ export default {
         this.get_area()
         this.get_data()
         this.get_cate()
+        this.get_reports()
     },
     mounted() {
         // this.init()
     },
     methods: {
+        async get_reports() {
+            const data = {
+                pageNum: this.pageNum,
+                pageSize: this.pageSize
+            }
+            const res = await api.get_reports(data)
+            this.total =res.data.count
+            let list = res.data.list
+            for(let i=0,len=list.length;i<len;i++) {
+                if(i<8) {
+                    this.report[0].push(list[i])
+                } else {
+                    this.report[1].push(list[i])
+                }
+            }
+            
+            //this.report = res.data.list
+            console.log(this.report)
+            //console.log()
+        },
         async get_area() {
             const res = await api.get_area()
             this.areaList = res.data
@@ -287,6 +248,10 @@ export default {
         },
         creat_report() {
 
+        },
+        handleCurrentChange(val) {
+            this.pageNum = val
+            this.get_reports()
         }
     },
 }

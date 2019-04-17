@@ -61,22 +61,21 @@ export default {
         async login() {
             this.check()
             const data = {
-                name: this.name,
+                phone: this.name,
                 password: this.password
             }
             const res = await api.login(data)
-            console.log(res)
-            if(res.code !== 200) {
-                res.msg == '该账号无效'?this.error1 = res.msg:res.msg='密码错误'?this.error2=res.msg:''
-                //res.data.data.errmsg == '该账号无效'? this.error1 = res.data.data.errmsg:res.data.data.errmsg == '密码错误'? this.error2=res.data.data.errmsg:''
-            } else {
-                console.log(res.data.data)
-                this.$store.commit('login/setToken', res.data.token)
-                this.$store.commit('login/setUSER_NAME', res.data.name)
-                // this.SET_TOKEN(res.data.token)
-                // this.SET_USER_NAME(res.data.name)
-                this.$router.replace('/')
-            }
+            // if(res.code !== 200) {
+            //     res.msg == '该账号无效'?this.error1 = res.msg:res.msg='密码错误'?this.error2=res.msg:''
+            //     //res.data.data.errmsg == '该账号无效'? this.error1 = res.data.data.errmsg:res.data.data.errmsg == '密码错误'? this.error2=res.data.data.errmsg:''
+            // } else {
+            //     console.log(res.data.data)
+            //     this.$store.commit('login/setToken', res.data.token)
+            //     this.$store.commit('login/setUSER_NAME', res.data.name)
+            //     // this.SET_TOKEN(res.data.token)
+            //     // this.SET_USER_NAME(res.data.name)
+            //     this.$router.replace('/')
+            // }
         },
         check() {
             if(!this.name || this.name.length==0) {

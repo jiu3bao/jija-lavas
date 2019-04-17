@@ -102,7 +102,7 @@
                             </el-radio-group>
                             <div v-for='tab in tabType' :key='tab'>
                                 <el-table
-                                v-if='data.tab==tab'
+                                :class='data.tab==tab?"show":"op"'
                                 :data="data.data"
                                 style="width: 100%">
                                 <el-table-column
@@ -193,7 +193,7 @@ export default {
             this.contrastCate2 = ''
             this.cateList.forEach(item => {
                 if(item.id == val) {
-                    this.cateList_two = item.childrenList
+                    this.cateList_two = item.children
                     return false
                 }
             })
@@ -580,5 +580,11 @@ export default {
         margin-top 100px
         .iconfont 
             font-size 84px
-            
+    .op 
+        height 0  
+        translate .3s  
+        border none
+    .show
+        height auto
+        translate .3s   
 </style>

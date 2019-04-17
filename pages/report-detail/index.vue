@@ -13,10 +13,10 @@
             <!--p class='time'>{{month}}-{{month}}</p-->
         </div>
         <el-container style='padding-top:66px;flex-direction:column;box-sizing:border-box;'>
-            <el-button type='primary' style='align-self: flex-end;width:100px;margin-bottom:12px' @click='addVisible = true' v-if='!mark ||mark.length==0'>添加备注</el-button>
-            <el-button type='primary' style='align-self: flex-end;width:100px;margin-bottom:12px' @click='dialogVisible = true' v-else>查看备注</el-button>
+            <el-button type='primary' style='align-self: flex-end;width:100px;margin-bottom:12px' @click='addVisible = true' v-if='!detail.mark ||detail.mark.length==0'>添加备注</el-button>
+            <el-button type='primary' style='align-self: flex-end;width:100px;margin-bottom:12px' @click='dialogVisible = true;mark=detail.mark' v-else>查看备注</el-button>
             <div id="wenzhang">
-                <img src='static/img/mark.png' v-if='mark && mark.length>0 && !addVisible'>
+                <img src='static/img/mark.png' v-if='detail.mark && detail.mark.length>0 && !addVisible'>
 			<div class="head">
 				这里是一个智能报告
 			</div>
@@ -73,11 +73,11 @@
                 :rows="10"
                 :maxRows="10"
                 placeholder="请输入内容"
-                v-model="mark"
+                v-model="detail.mark"
                 resize='none'>
             </el-input>
             <span slot="footer" class="dialog-footer">
-                <el-button @click="addVisible = false;mark = ''">取 消</el-button>
+                <el-button @click="addVisible = false;detail.mark = ''">取 消</el-button>
                 <el-button type="primary" @click="addVisible = false" >立即添加</el-button>
             </span>
         </el-dialog>
@@ -85,7 +85,7 @@
             title="我的备注"
             :visible.sync="dialogVisible"
             width="30%">
-            <span class='sub-title'>更新时间：2019-03-12</span>
+            <span class='sub-title'>更新时间：{{detail.updateTime}}</span>
             <el-input
                 type="textarea"
                 :rows="10"
@@ -96,8 +96,8 @@
                 resize='none'>
             </el-input>
             <span slot="footer" class="dialog-footer">
-                <el-button @click="dialogVisible = false">取 消</el-button>
-                <el-button type="primary" @click="disabled = false" v-if='disabled'>再次编辑</el-button>
+                <el-button @click="dialogVisible = false;disabled= true">取 消</el-button>
+                <el-button type="primary" @click="re_edit" v-if='disabled'>再次编辑</el-button>
                 <el-button type="primary" @click="dialogVisible = false;disabled = true" v-else>确定修改</el-button>
             </span>
         </el-dialog>
@@ -115,7 +115,8 @@ export default {
             mark:'',
             dialogVisible:false,
             addVisible:false,
-            disabled:true
+            disabled:true,
+            detail:{}
         }
     },
     components:{
@@ -123,20 +124,31 @@ export default {
     },
     created() {
         this.get_data()
+
     },
     mounted() {
         // this.init()
     },
     methods: {
-        get_data() {
-            
+        async get_data() {
+            const data = {
+                id: this.$route.query.id
+            }
+            const res = await api.get_reports_detail(data)
+            this.detail = res.data
+            this.detail.updateTime = this.renderTime(this.detail.updateTime)
+            //this.mark = this.detail.mark
+        },
+        renderTime(date) {
+            var dateee = new Date(date).toJSON();
+            return new Date(+new Date(dateee) + 8 * 3600 * 1000).toISOString().replace(/T/g, ' ').replace(/\.[\d]{3}Z/, '') 
         },
         add() {
             this.$prompt('我的备注', '提示', {
                 confirmButtonText: '确定',
                 cancelButtonText: '取消',
             }).then(({ value }) => {
-                this.mark = value
+                this.detail.mark = value
                 this.$message({
                     type: 'success',
                     message: '备注添加成功'
@@ -147,6 +159,10 @@ export default {
                     message: '取消输入'
                 });       
             });
+        },
+        re_edit() {
+            this.dialogVisible = true
+            this.disabled = false 
         }
     },
 }

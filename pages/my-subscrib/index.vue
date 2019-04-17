@@ -33,13 +33,12 @@
                                 <h1>
                                     {{item.title}}
                                 </h1>
-                                <p>更新日期 {{item.time}} </p>
+                                <p>更新日期 {{item.createTime.split('T')[0]}} </p>
                             </div>
                             <div>
                                 <a>查看详情></a>
-                                <i class='iconfont iconicon' @click='delet_item(index)'></i>
+                                <i class='iconfont iconicon' @click='delet_item(item.id,index)'></i>
                             </div>
-                            
                         </li>
                     </ul>
                     <el-pagination
@@ -53,7 +52,7 @@
                     <h1>{{activeName}}</h1>
                     <div>
                         <el-input
-                            placeholder="请输入订阅编号"
+                            placeholder="请输入消息编号"
                             prefix-icon="el-icon-search"
                             v-model="text"
                             class='w-260'>
@@ -82,6 +81,7 @@
                     <el-pagination
                         layout="prev, pager, next"
                         :total="total"
+                        :page-size="pageSize"
                         class='float-right'>
                     </el-pagination>
                 </el-tab-pane>
@@ -156,48 +156,10 @@ export default {
         return {
             text:'',
             total: 50,
-            article_list:[{
-                title:'钢材 2018.03-2018.09 价格指数 1000 钢材 2018.03-2018.09 价格指数 1000 ajdfhajdhfalskdhfaldhflskjfhlsdjbf',
-                time:'2019-03-23',
-                id:1,
-                checked:false
-            },{
-                title:'钢材 2018.03-2018.09 价格指数 1000 钢材 2018.03-2018.09 价格指数 1000',
-                time:'2019-03-24',
-                id:2,
-                checked:false
-            },{
-                title:'钢材 2018.03-2018.09 价格指数 1000',
-                time:'2019-03-25',
-                id:3,
-                checked:false
-            }],
-            subscrib_list:[{
-                title:'消息内容 您订阅的”昆明市钢材价格“已经更新，请前往 月度数据 查看 ',
-                time:'2019-03-23',
-                id:1,
-                checked:false
-            },{
-                title:'消息内容 您订阅的”昆明市钢管价格“已经更新，请前往 月度数据 查看 ',
-                time:'2019-03-23',
-                id:1,
-                checked:false
-            },{
-                title:'消息内容 您订阅的”昆明市钢筋价格“已经更新，请前往 月度数据 查看 ',
-                time:'2019-03-23',
-                id:1,
-                checked:false
-            },{
-                title:'消息内容 您订阅的”昆明市石灰价格“已经更新，请前往 月度数据 查看 ',
-                time:'2019-03-23',
-                id:1,
-                checked:false
-            },{
-                title:'消息内容 您订阅的”昆明市水泥价格“已经更新，请前往 月度数据 查看 ',
-                time:'2019-03-23',
-                id:1,
-                checked:false
-            }],
+            pageSize:10,
+            pageNum:1,
+            article_list:[],
+            subscrib_list:[],
             activeName:'数据订阅',
             dialogFormVisible: false,
             formLabelWidth:'90px',
@@ -243,6 +205,15 @@ export default {
         this.get_cate()
         this.get_area()
     },
+    watch:{
+        activeName(val) {
+            if(val == '数据订阅') {
+                this.get_data()
+            } else {
+                this.get_msg()
+            }
+        }
+    },
     mounted() {
         // this.init()
     },
@@ -254,8 +225,20 @@ export default {
             this.get_data()
         },
         async get_data() {
-           
-            
+            const data = {
+                pageNum: this.pageNum,
+                pageSize: this.pageSize
+            }
+            const res = await api.get_subscrib(data)
+            this.total = res.data.count
+            res.data.list.forEach(item => {
+                item.checked = false
+            })
+            this.article_list = res.data.list
+        },
+        async get_msg() {
+            const res = await api.get_msg({})
+            console.log(res)
         },
         async get_cate() {
             const res = await api.get_cate({a:1})
@@ -265,23 +248,24 @@ export default {
             const res = await api.get_area()
             this.areaList = res.data
         },
-        delet() {
-            this.$confirm('是否删除该条信息?', '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-                type: 'warning'
-            }).then(() => {
-                this.$message({
-                    type: 'success',
-                    message: '删除成功!'
-                });
-            }).catch(() => {
-                this.$message({
-                    type: 'info',
-                    message: '已取消删除'
-                });          
-            });
-        },
+        // delet() {
+        //     this.$confirm('是否删除该条信息?', '提示', {
+        //         confirmButtonText: '确定',
+        //         cancelButtonText: '取消',
+        //         type: 'warning'
+        //     }).then(() => {
+                
+        //         this.$message({
+        //             type: 'success',
+        //             message: '删除成功!'
+        //         });
+        //     }).catch(() => {
+        //         this.$message({
+        //             type: 'info',
+        //             message: '已取消删除'
+        //         });          
+        //     });
+        // },
         
         handleCheckAllChange(val) {
             if(val) {
@@ -319,6 +303,10 @@ export default {
                     this.article_list.map(item => {
                         if(!item.checked) {
                             arr.push(item)
+                        } else {
+                            api.delete_sub({id:item.id}).then(r => {
+                                
+                            })
                         }
                     })
                     this.article_list = arr
@@ -326,6 +314,10 @@ export default {
                     this.subscrib_list.map(item => {
                         if(!item.checked) {
                             arr.push(item)
+                        } else {
+                            api.delete_msg({id:item.id}).then(r => {
+                                
+                            })
                         }
                     })
                     this.subscrib_list = arr
@@ -342,19 +334,20 @@ export default {
                 });          
             });
         },
-        delete_msg() {
-
-        },
-        delet_item(index) {
+        delet_item(id,index) {
             this.$confirm('是否删除所选表格信息?', '提示', {
                 confirmButtonText: '确定',
                 cancelButtonText: '取消',
                 type: 'warning'
             }).then(() => {
                 if(this.activeName == '数据订阅') {
-                    this.article_list.splice(index,1)
+                    api.delete_sub({id:id}).then(r => {
+                        this.article_list.splice(index,1)
+                    })
                 } else {
-                    this.subscrib_list.splice(index,1)
+                    api.delete_msg({id:item.id}).then(r => {
+                        this.subscrib_list.splice(index,1)
+                    })
                 }
                 
                 this.$message({

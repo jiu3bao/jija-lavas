@@ -19,11 +19,11 @@
             <ul class='article-ul'>
                 <li v-for='(item, index) in article_list' :key='index'>
                     <div>
-                        <p>文章编号001</p>
-                        <h1>关于如何使用本平台来进行相关的操作</h1>
-                        <p>更新日期 2018.06.23 </p>
+                        <p>文章编号{{index.length==3?index+1:index.length<2 ?"0"+ (index+1):"00"+(index+1)}}</p>
+                        <h1>{{item.title}}</h1>
+                        <p>更新日期 {{item.time?item.time.split('T')[0]:''}}</p>
                     </div>
-                    <a @click='$router.push("/help-detail")'>查看详情></a>
+                    <a @click='$router.push("/help-detail?id="+item.id)'>查看详情></a>
                 </li>
             </ul>
             <el-pagination
@@ -44,8 +44,10 @@ export default {
     data() {
         return {
             text:'',
-            total: 50,
-            article_list:[{},{},{}]
+            total: 0,
+            article_list:[],
+            pageNum:1,
+            pageSize:10
         }
     },
     components:{
@@ -64,8 +66,14 @@ export default {
         ref() {
             this.get_data()
         },
-        get_data() {
-            
+        async get_data() {
+            const data = {
+                pageNum: this.pageNum,
+                pageSize: this.pageSize
+            }
+            const res = await api.get_help(data)
+            this.article_list = res.data.list 
+            this.total = res.data.count
         }
     },
 }

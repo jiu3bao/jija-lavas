@@ -6,7 +6,11 @@ const service = axios.create({
     withCredentials: false,
     headers: { 'Content-Type': 'application/json;charset=UTF-8' }
 })
-console.log(service.get)
+const formser = axios.create({
+    baseURL: '/api',
+    withCredentials: false,
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+})
 
 service.interceptors.response.use(
     response => {
@@ -26,14 +30,14 @@ service.interceptors.response.use(
 
 const api = {
     get_area(data) {
-		//return service.post('/PageAreaController/getAreaList', data)
+		return service.post('/PageAreaController/getAreaList', {pid:53})
         return {
             data:[{"id":"530100000000","name":"昆明市","level":"2","pid":"53","geocode":"102.832891,24.880095"},{"id":"530300000000","name":"曲靖市","level":"2","pid":"53","geocode":"103.796167,25.489999"},{"id":"530400000000","name":"玉溪市","level":"2","pid":"53","geocode":"102.546543,24.352036"},{"id":"530500000000","name":"保山市","level":"2","pid":"53","geocode":"99.161761,25.112046"},{"id":"530600000000","name":"昭通市","level":"2","pid":"53","geocode":"103.717465,27.338257"},{"id":"530700000000","name":"丽江市","level":"2","pid":"53","geocode":"100.227750,26.855047"},{"id":"530800000000","name":"普洱市","level":"2","pid":"53","geocode":"100.966512,22.825065"},{"id":"530900000000","name":"临沧市","level":"2","pid":"53","geocode":"100.079583,23.877573"},{"id":"532300000000","name":"楚雄彝族自治州","level":"2","pid":"53","geocode":"101.528068,25.045532"},{"id":"532500000000","name":"红河哈尼族彝族自治州","level":"2","pid":"53","geocode":"103.374799,23.363130"},{"id":"532600000000","name":"文山壮族苗族自治州","level":"2","pid":"53","geocode":"104.216248,23.400733"},{"id":"532800000000","name":"西双版纳傣族自治州","level":"2","pid":"53","geocode":"100.797777,22.007351"},{"id":"532900000000","name":"大理白族自治州","level":"2","pid":"53","geocode":"100.267638,25.606486"},{"id":"533100000000","name":"德宏傣族景颇族自治州","level":"2","pid":"53","geocode":"98.584895,24.433353"},{"id":"533300000000","name":"怒江傈僳族自治州","level":"2","pid":"53","geocode":"98.853097,25.852547"},{"id":"533400000000","name":"迪庆藏族自治州","level":"2","pid":"53","geocode":"99.702234,27.818882"}],
             code:200
         }
     },
     get_cate(data) {
-		//return service.post('/PageMaterialController/getMaterialsAndClass', {})
+		// return service.post('/PageMaterialController/getMaterialsAndClass', {})
         if(data) {
             return {
                 data:{
@@ -394,8 +398,7 @@ const api = {
     },
     login (data) {
 		//let par = qs.stringify(data)
-		//console.log(par)
-		//return service.post('/api/login',par)
+		return service.post('/SystemUserController/login',data)
         if(data.name != 'admin') {
             return {
                 msg: '该账号无效',
@@ -419,7 +422,32 @@ const api = {
                 
             }
         }
-    }
+	},
+	get_reports(data) {
+		return service.post('/PageReportController/findListByPage', data)
+	},
+	get_reports_detail(data) {
+		if(data) data = qs.stringify(data, { allowDots: true })
+		return formser.post('/PageReportController/getReportById', data)
+	},
+	get_subscrib(data) {
+		return formser.post('/PageSubscriptionController/findPage', data)
+	},
+	delete_sub(data) {
+		return formser.post('/PageSubscriptionController/delete',data)
+	},
+	get_help(data) {
+		return formser.post('/pageHelperController/findHelperByPage', data)
+	},
+	get_help_detail(data) {
+		return formser.post('/pageHelperController/getArtInfo', data)
+	},
+	get_msg(data) {
+		return service.post('/PageMessageController/getMessage', data)
+	},
+	delete_msg(data) {
+		return service.post('/PageMessageController/delMessage', data)
+	}
 }
 
 export default api

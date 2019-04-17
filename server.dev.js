@@ -24,11 +24,12 @@ if (process.argv.length >= 3 && process.argv[2] !== 'dev') {
 var proxyTable = {
     // proxy table example
     '/api': {
-        target: 'http://test.ngrok.xiaomiqiu.cn',
+        target: 'http://192.168.8.19:8018',
+        // target:'http://192.168.8.29:8016',
         pathRewrite: { '^/api': '' },
         changeOrigin: true,
         secure: false
-    }
+    },
 };
 
 var port = process.env.PORT || 3000;
