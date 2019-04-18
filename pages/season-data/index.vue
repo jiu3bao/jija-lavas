@@ -179,7 +179,7 @@ export default {
             cateList:[],
             cateList_two:[],
             defaultProps: {
-                children: 'children',
+                children: 'childrenList',
                 label: 'name'
             },
             tableData:[],
@@ -221,7 +221,7 @@ export default {
             this.contrastCate2 = ''
             this.cateList.forEach(item => {
                 if(item.id == val) {
-                    this.cateList_two = item.children
+                    this.cateList_two = item.childrenList
                     return false
                 }
             })
@@ -256,8 +256,9 @@ export default {
             const res = await api.get_cate({a:1})
             this.cateList = res.data.data
             this.cateList.map(item => {
-                this.cateList_two.push(...item.children)
+                this.cateList_two.push(...item.childrenList)
             })
+            this.handleNodeClick(this.cateList[0])
         },
         handleNodeClick(data) {
             this.chosed_cate = data
@@ -272,13 +273,18 @@ export default {
             } else {
                 if(this.constractList.length > 0) {
                     this.constractList.filter(item => {
-                        let data = {
-                            month: this.season,
-                            area: this.area,
-                            clzs: this.clzs,
-                            cljg: this.cljg,
-                            cate_id: item.id
+                        let data
+                        if(this.season == 1) {
+                            const t = new Date()
+                            const y = t.getFullYear()
+                            data = {
+                                startTime: st,
+                                endTime:et,
+                                area: this.area,
+                                id: item.id
+                            }
                         }
+                        
                         
                         const res = api.get_month_data(data) 
                         item.data = res.data.data

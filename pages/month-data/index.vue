@@ -96,35 +96,35 @@
                             </h1>
                             <el-radio-group v-model="data.tab" style="margin-bottom: 30px;">
                                 <el-radio-button label="price">价格</el-radio-button>
-                                <el-radio-button label="zs">指数</el-radio-button>
-                                <el-radio-button label="tb">同比</el-radio-button>
-                                <el-radio-button label="hb">环比</el-radio-button>
+                                <el-radio-button label="exponent">指数</el-radio-button>
+                                <el-radio-button label="tongbi">同比</el-radio-button>
+                                <el-radio-button label="huanbi">环比</el-radio-button>
                             </el-radio-group>
                             <div v-for='tab in tabType' :key='tab'>
                                 <el-table
-                                :class='data.tab==tab?"show":"op"'
-                                :data="data.data"
-                                style="width: 100%">
-                                <el-table-column
-                                    prop="add"
-                                    label="地区"
-                                    width="150">
-                                    <template slot-scope="scoped">
-                                        {{scoped.row[0].add}}
-                                    </template>
-                                </el-table-column>
-                                <el-table-column label="时间" >
+                                    :class='data.tab==tab?"show":"op"'
+                                    :data="data.data"
+                                    style="width: 100%">
                                     <el-table-column
-                                        v-for='(item, index) in data.data[0]'
-                                        :key='index'
-                                        prop="name"
-                                        :label="item.time">
-                                        <template >
-                                            {{item[tab]}}
+                                        prop="add"
+                                        label="地区"
+                                        width="150">
+                                        <template slot-scope="scoped">
+                                            {{scoped.row[0].add}}
                                         </template>
                                     </el-table-column>
-                                </el-table-column>
-                            </el-table>
+                                    <el-table-column label="时间" >
+                                        <el-table-column
+                                            v-for='(item, index) in data.data[0]'
+                                            :key='index'
+                                            prop="name"
+                                            :label="item.asmdate?item.asmdate.split(' ')[0]:''">
+                                            <template >
+                                                {{scoped.row[index][tab]}} {{scoped.row[index]}}
+                                            </template>
+                                        </el-table-column>
+                                    </el-table-column>
+                                </el-table>
                             </div>
                             
                         </div>
@@ -149,9 +149,9 @@ export default {
             activeName:'动态分析图',
             tabType:[
                 'price',
-                'zs',
-                'tb',
-                'hb'
+                'exponent',
+                'tongbi',
+                'huanbi'
             ],
             options:{
                 disabledDate(time) {
@@ -161,11 +161,11 @@ export default {
             areaList:[],
             area:[],
             month:[],
-            chosed_cate:{name:'全类型',id:''},
+            chosed_cate:{},
             cateList:[],
             cateList_two:[],
             defaultProps: {
-                children: 'children',
+                children: 'childrenList',
                 label: 'name'
             },
             tableData:[],
@@ -184,8 +184,14 @@ export default {
         scrollTop
     },
     created() {
+        const date = new Date()
+        const year = date.getFullYear()
+        let month = date.getMonth()+1
+        let exmonth = date.getMonth()-2
+        if(month<10) month = '0'+month
+        if(exmonth<10) exmonth = '0'+exmonth
+        this.month = [year+'-' + exmonth, year+'-' + month]
         this.get_area()
-        this.get_data()
         this.get_cate()
     },
     watch:{
@@ -193,13 +199,18 @@ export default {
             this.contrastCate2 = ''
             this.cateList.forEach(item => {
                 if(item.id == val) {
-                    this.cateList_two = item.children
+                    this.cateList_two = item.childrenList
                     return false
                 }
             })
         },
         activeName(val) {
             this.get_data()
+        },
+        constractList: {
+            handler(val) {
+                console.log(val,789798)
+            }, deep:true
         }
     },
     mounted() {
@@ -222,19 +233,15 @@ export default {
         },
         async get_area() {
             const res = await api.get_area({})
-            // res.data.forEach(item => {
-            //     if(item.pid == '14b9f21fc4c24b4b93843578b0e40c18'){
-            //         this.areaList.push(item)
-            //     }                
-            // })
             this.areaList = res.data
         },
         async get_cate() {
-            const res = await api.get_cate({})
-            this.cateList = res.data.data
+            const res = await api.get_cate()
+            this.cateList = res.data
             this.cateList.map(item => {
-                this.cateList_two.push(...item.children)
+                this.cateList_two.push(...item.childrenList)
             })
+            this.handleNodeClick(this.cateList[0])
         },
         handleNodeClick(data) {
             this.chosed_cate = data
@@ -250,26 +257,59 @@ export default {
                 if(this.constractList.length > 0) {
                     this.constractList.filter(item => {
                         let data = {
-                            startTime: this.month[0],
-                            endTime: this.month[1],
-                            area: this.area,
-                            cateId: item.id
+                            startDate: this.month[0],
+                            endDate: this.month[1],
+                            area: this.area.toString(),
+                            id: item.id,
+                            orderType:1
                         }
-                        // api.get_cate_data(data).then(() => {
-                        //     item.data = res.data
-                        // })
-                        const res = api.get_month_data(data) 
-                        item.data = res.data.data
-                        item.data.forEach(son => {
-                            if(/^\+?[1-9][0-9]*$/.test(son[0].add)) {
-                                this.areaList.forEach(area => {
-                                    if(area.id == son[0].add) {
-                                        son[0].add = area.name
-                                        return
+                        api.get_cate_data(data).then(r => {
+                            const ll = r.data
+                            console.log(ll)
+                            let area_list=[]
+                            if(ll.length>0) {
+                                ll.map(item => {
+                                    let has = false
+                                    if(area_list.length ==0) {
+                                        area_list.push([])
+                                    }
+                                    area_list.map(arr => {
+                                        if(arr.length ==0) {
+                                            arr.push(item)
+                                            has = true
+                                        } else {
+                                            if(arr[0].area == item.area) {
+                                                arr.push(item)
+                                                has = true
+                                            } else {
+                                                has = false
+                                            }
+                                        }
+                                    })
+                                    if(!has) {
+                                        area_list.push([item])
                                     }
                                 })
                             }
+                            console.log(item.data)
+                            item.data = area_list
+                            item.data.filter(son => {
+                                if(son[0].area.length > '2') {
+                                    this.areaList.forEach(area => {
+                                        if(area.id == son[0].area) {
+                                            son[0].add = area.name
+                                            return
+                                        }
+                                    })
+                                } else {
+                                    son[0].add = '全省'
+                                }
+                            })
                         })
+                        // const res = api.get_month_data(data) 
+                        // item.data = res.data.data
+                        
+                        console.log(item.data,1111111)
                     })
                 }
             }
@@ -277,45 +317,74 @@ export default {
         },
         async get_data() {
             const data = {
-                startTime: this.month[0],
-                endTime: this.month[1],
-                area: this.area,
-                cateId: this.chosed_cate.id
+                startDate: this.month[0],
+                endDate: this.month[1],
+                area: this.area.toString(),
+                id: this.chosed_cate.id,
+                orderType:1
             }
-            const res = await api.get_month_data(data) 
-            this.tableData = res.data.data
-            
-            
+            const res = await api.get_cate_data(data) 
+
+            const ll = res.data
+            let area_list=[]
+            if(ll.length>0) {
+                ll.map(item => {
+                    let has = false
+                    if(area_list.length ==0) {
+                        area_list.push([])
+                    }
+                    area_list.map(arr => {
+                        if(arr.length ==0) {
+                            arr.push(item)
+                            has = true
+                        } else {
+                            if(arr[0].area == item.area) {
+                                arr.push(item)
+                                has = true
+                            } else {
+                                has = false
+                            }
+                        }
+                    })
+                    if(!has) {
+                        area_list.push([item])
+                    }
+                    this.tableData = area_list
+     
+                })
+            }
             //只有在tab=='动态图表时渲染图'
             if(this.tableData.length >0){
                 let lengend = []
                 let x =[], y=[]
-                console.log(this.tableData)
-                this.tableData.map(item => {
+                this.tableData.filter(item => {
                     let areaname ='全省'
                     this.areaList.forEach(area => {
-                        if(area.id == item[0].add) {
+                        if(area.id == item[0].area) {
                             lengend.push(area.name)
                             areaname = area.name
                             item[0].add = areaname
                             return
+                        } else {
+                            item[0].add = areaname
                         }
                     })
-                    
                     let yy = []
                     item.map(data => {
                         if(x.length != item.length) {
-                            x.push(data.x)
+                            x.push(data.asmdate.split(' ')[0])
                         }
                         yy.push(data.price)
                     })
                     y.push({data:yy,type:'line',name:areaname})
                 })
                 
+                
                 if(this.activeName == '数据统计表') {
                     const obj = {data:this.tableData, name: this.chosed_cate.name, tab:'price',checked:false,id:this.chosed_cate.id}
                     this.constractList = []
                     this.constractList.push(obj)
+                    console.log(this.tableData)
                     return 
                 }
                 this.init(x,y,lengend)
@@ -383,13 +452,15 @@ export default {
             //     return
             // }
             let data = {
-                month: this.month,
-                area: this.area,
+                startDate: this.month[0],
+                endDate: this.month[1],
+                area: this.area.toString(),
+                // id: this.chosed_cate.id,
+                orderType:1
             }
             let name
             if(this.contrastCate2&&this.contrastCate2.length>0) {
-                data.cate_id = this.contrastCate2
-                data.pid = this.contrastCate1
+                data.id = this.contrastCate2
                 this.cateList_two.forEach(item => {
                     if(item.id == this.contrastCate2) {
                         name = item.name
@@ -397,7 +468,7 @@ export default {
                     }
                 })
             } else if (this.contrastCate1&&this.contrastCate1.length>0) {
-                data.cate_id = this.contrastCate1
+                data.id = this.contrastCate1
                 this.cateList.forEach(item => {
                     if(item.id == this.contrastCate1) {
                         name = item.name
@@ -411,23 +482,57 @@ export default {
                 });
                 return false
             }
-            const res = await api.get_month_data(data).data.data
-            res.forEach(son => {
-                if(/^\+?[1-9][0-9]*$/.test(son[0].add)) {
-                    this.areaList.forEach(area => {
-                        if(area.id == son[0].add) {
+            const res = await api.get_cate_data(data)
+            let ll = res.data
+            let area_list=[]
+            console.log(ll,'llll')
+            if(ll.length>0) {
+                ll.map(item => {
+                    let has = false
+                    if(area_list.length ==0) {
+                        area_list.push([])
+                    }
+                    area_list.map(arr => {
+                        if(arr.length ==0) {
+                            arr.push(item)
+                            has = true
+                        } else {
+                            if(arr[0].area == item.area) {
+                                arr.push(item)
+                                has = true
+                            } else {
+                                has = false
+                            }
+                        }
+                    })
+                    if(!has) {
+                        area_list.push([item])
+                    }
+                    //this.tableData = area_list
+                })
+            }
+            console.log(area_list,'aaaaa')
+            area_list.filter(son => {
+                this.areaList.forEach(area => {
+                    if(son[0].area.length > '2') {
+                        if(area.id == son[0].area) {
                             son[0].add = area.name
                             return
-                        }   
-                    })
-                }
+                        }
+                    } else {
+                        son[0].add = '全省'
+                    } 
+                })
             })
-            const obj = {data:res, name: name, tab:'price',checked:false,id:data.cate_id}
+            const obj = {data:area_list, name: name, tab:'price',checked:false,id:data.id}
+            console.log(obj,12312312321)
             this.$message({
                 message: '已成功添加对比',
                 type: 'success'
             });
             this.constractList.push(obj)
+            console.log(this.constractList)
+
         },
         handleCheckAllChange(val) {
             if(val) {
@@ -484,9 +589,22 @@ export default {
             });
         }
     },
+    filter:{
+        formateArea(val) {
+            if(val.length > '2') {
+                // this.areaList.forEach(area => {
+                //     if(area.id == val) {
+                //         return area.name
+                        
+                //     }
+                // })
+            } else {
+                return'全省'
+            } 
+        }
+    },
     beforeRouteLeave(to, from, next) {
         const main = document.getElementsByClassName('main')[0]
-        console.log(this)
         main.removeEventListener('scroll',this.handleScroll)
         next()
     }

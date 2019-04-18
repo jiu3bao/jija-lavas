@@ -10,16 +10,20 @@
         </div>
         <div class="time-picker">
             <el-input
-                placeholder="请输入内容"
+                placeholder="请输入文章编号"
                 prefix-icon="el-icon-search"
                 v-model="text">
             </el-input>
         </div>
         <el-container style='height:100%;padding-top:114px;box-sizing:border-box;flex-direction:column'>
+            <div v-if='!article_list||article_list.length ==0' class='nodata'>
+                <i class='iconfont iconkongbaiye'></i>
+                <p>没有找到相关数据</p>
+            </div>
             <ul class='article-ul'>
                 <li v-for='(item, index) in article_list' :key='index'>
                     <div>
-                        <p>文章编号{{index.length==3?index+1:index.length<2 ?"0"+ (index+1):"00"+(index+1)}}</p>
+                        <p>文章编号{{item.code}}</p>
                         <h1>{{item.title}}</h1>
                         <p>更新日期 {{item.time?item.time.split('T')[0]:''}}</p>
                     </div>
@@ -27,9 +31,13 @@
                 </li>
             </ul>
             <el-pagination
+                v-if='article_list&&article_list.length>0'
                 layout="prev, pager, next"
                 :total="total"
-                class='float-right'>
+                :page-size="pageSize"
+                class='float-right'
+                :current-page='pageNum'
+                @current-change="handleCurrentChange">
             </el-pagination>
         </el-container>
         
@@ -37,8 +45,6 @@
 </template>
 
 <script>
-import scrollTop from '../../components/scroll-top'
-import echarts from 'echarts'
 import api from '../../api/api'
 export default {
     data() {
@@ -47,29 +53,35 @@ export default {
             total: 0,
             article_list:[],
             pageNum:1,
-            pageSize:10
+            pageSize:5
         }
-    },
-    components:{
-        scrollTop
     },
     created() {
         this.get_data()
     },
     mounted() {
-        // this.init()
+        const that = this
+        document.onkeydown = function (event) {
+            var e = event || window.event;
+            if (e && e.keyCode == 13) { //回车键的键值为13
+                that.ref()
+            }
+        }; 
     },
     methods: {
-        handleNodeClick(data) {
-            this.chosed_cate = data
+        handleCurrentChange(val) {
+            this.pageNum = val
+            this.get_data()
         },
         ref() {
+            this.pageNum = 1
             this.get_data()
         },
         async get_data() {
             const data = {
                 pageNum: this.pageNum,
-                pageSize: this.pageSize
+                pageSize: this.pageSize,
+                code: this.text
             }
             const res = await api.get_help(data)
             this.article_list = res.data.list 

@@ -25,7 +25,7 @@ module.exports = {
         ]
     },
     router: {
-        mode: 'history',
+        mode: 'hash',
         base: '/',
         pageTransition: {
             type: 'fade',
@@ -41,7 +41,7 @@ module.exports = {
         swSrc: path.join(__dirname, 'core/service-worker.js'),
 
         // Path of generated service worker file
-        swDest: path.join(BUILD_PATH, 'service-worker.js'),
+        swDest: path.join(BUILD_PATH, './service-worker.js'),
 
         // If true, `workbox.routing.registerNavigationRoute()` won't be generated
         // Defaults to `false`

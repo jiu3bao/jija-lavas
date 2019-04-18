@@ -1,5 +1,5 @@
 {
-    "buildVersion": 1555396384119,
+    "buildVersion": 1555589185571,
     "build": {
         "ssr": false,
         "publicPath": "/",
@@ -12,7 +12,7 @@
         "client": []
     },
     "router": {
-        "mode": "history",
+        "mode": "hash",
         "base": "/",
         "pageTransition": {
             "type": "fade",

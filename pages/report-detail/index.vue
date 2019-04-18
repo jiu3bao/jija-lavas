@@ -16,7 +16,7 @@
             <el-button type='primary' style='align-self: flex-end;width:100px;margin-bottom:12px' @click='addVisible = true' v-if='!detail.mark ||detail.mark.length==0'>添加备注</el-button>
             <el-button type='primary' style='align-self: flex-end;width:100px;margin-bottom:12px' @click='dialogVisible = true;mark=detail.mark' v-else>查看备注</el-button>
             <div id="wenzhang">
-                <img src='static/img/mark.png' v-if='detail.mark && detail.mark.length>0 && !addVisible'>
+                <img src='../../static/img/mark.png' v-if='detail.mark && detail.mark.length>0 && !addVisible'>
 			<div class="head">
 				这里是一个智能报告
 			</div>
@@ -78,7 +78,7 @@
             </el-input>
             <span slot="footer" class="dialog-footer">
                 <el-button @click="addVisible = false;detail.mark = ''">取 消</el-button>
-                <el-button type="primary" @click="addVisible = false" >立即添加</el-button>
+                <el-button type="primary" @click="add_mark" >立即添加</el-button>
             </span>
         </el-dialog>
         <el-dialog
@@ -98,7 +98,7 @@
             <span slot="footer" class="dialog-footer">
                 <el-button @click="dialogVisible = false;disabled= true">取 消</el-button>
                 <el-button type="primary" @click="re_edit" v-if='disabled'>再次编辑</el-button>
-                <el-button type="primary" @click="dialogVisible = false;disabled = true" v-else>确定修改</el-button>
+                <el-button type="primary" @click="edit_mark" v-else>确定修改</el-button>
             </span>
         </el-dialog>
 
@@ -143,22 +143,34 @@ export default {
             var dateee = new Date(date).toJSON();
             return new Date(+new Date(dateee) + 8 * 3600 * 1000).toISOString().replace(/T/g, ' ').replace(/\.[\d]{3}Z/, '') 
         },
-        add() {
-            this.$prompt('我的备注', '提示', {
-                confirmButtonText: '确定',
-                cancelButtonText: '取消',
-            }).then(({ value }) => {
-                this.detail.mark = value
+        add_mark() {
+            const data = {
+                mark : this.detail.mark,
+                id: this.$route.query.id
+            }
+            api.updata_report(data).then(() => {
                 this.$message({
                     type: 'success',
                     message: '备注添加成功'
                 });
-            }).catch(() => {
+                this.addVisible = false
+                this.get_data()
+            })
+        }, 
+        edit_mark() {
+            const data = {
+                mark : this.mark,
+                id: this.$route.query.id
+            }
+            api.updata_report(data).then(() => {
                 this.$message({
-                    type: 'info',
-                    message: '取消输入'
-                });       
-            });
+                    type: 'success',
+                    message: '备注添加成功'
+                });
+                this.dialogVisible = false;
+                this.disabled = true
+                this.get_data()
+            })
         },
         re_edit() {
             this.dialogVisible = true

@@ -24,8 +24,9 @@ if (process.argv.length >= 3 && process.argv[2] !== 'dev') {
 var proxyTable = {
     // proxy table example
     '/api': {
-        target: 'http://192.168.8.19:8018',
-        // target:'http://192.168.8.29:8016',
+        // target: 'http://192.168.8.19:8018', // dev
+        target:'http://192.168.8.121:8016', // wang
+        // target: 'http://192.168.8.104:8016', // zhang
         pathRewrite: { '^/api': '' },
         changeOrigin: true,
         secure: false

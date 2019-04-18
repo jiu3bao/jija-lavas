@@ -230,6 +230,7 @@ export default {
             this.cateList.map(item => {
                 this.cateList_two.push(...item.children)
             })
+            this.handleNodeClick(this.cateList[0])
         },
         handleNodeClick(data) {
             this.chosed_cate = data

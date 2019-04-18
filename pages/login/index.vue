@@ -2,7 +2,7 @@
     <div class='login'>
         <div class='input-box'>
             <div class='left'> 
-                <img src='static/img/login.png'>
+                <img src='../../static/img/login.png'>
                 <h1>
                     云南省建设工程材料及设备价格
                 </h1>
@@ -12,8 +12,8 @@
             <div class='right'>
                 <h1>用户登录</h1>
                 <div class='input'>
-                    <p>账号</p>
-                    <input placeholder='请输入账号' v-model='name' :class='error1&&error1.length>0?"red":name&&name.length>0?"blue":""'>
+                    <p>手机号</p>
+                    <input placeholder='请输入手机号' v-model='name' :class='error1&&error1.length>0?"red":name&&name.length>0?"blue":""'>
                     <p class='error'>{{error1}}</p>
                 </div>
                 <div class='input'>
@@ -65,17 +65,18 @@ export default {
                 password: this.password
             }
             const res = await api.login(data)
-            // if(res.code !== 200) {
-            //     res.msg == '该账号无效'?this.error1 = res.msg:res.msg='密码错误'?this.error2=res.msg:''
-            //     //res.data.data.errmsg == '该账号无效'? this.error1 = res.data.data.errmsg:res.data.data.errmsg == '密码错误'? this.error2=res.data.data.errmsg:''
-            // } else {
-            //     console.log(res.data.data)
-            //     this.$store.commit('login/setToken', res.data.token)
-            //     this.$store.commit('login/setUSER_NAME', res.data.name)
-            //     // this.SET_TOKEN(res.data.token)
-            //     // this.SET_USER_NAME(res.data.name)
-            //     this.$router.replace('/')
-            // }
+            if(res.data.user) {
+                this.$store.commit('login/setToken', res.data.user.token)
+                this.$store.commit('login/setUSER_NAME', res.data.user.name)
+                this.$store.commit('login/setUSER_ID',res.data.user.id)
+                this.$router.replace('/')
+            } else {
+                if(res.data.message == '此手机号还没注册') {
+                    this.error1 = res.data.message
+                } else if(res.data.message == "密码错误") {
+                    this.error2 = res.data.message
+                }
+            }
         },
         check() {
             if(!this.name || this.name.length==0) {
@@ -84,6 +85,8 @@ export default {
             } else if(!this.password || this.password.length==0) {
                 this.error1 = '请输入密码'
                 return 
+            } else if(!(/^1([38][0-9]|4[579]|5[0-3,5-9]|6[6]|7[0135678]|9[89])\d{8}$/.test(this.name))) {
+                this.error1 = '手机号格式不正确'
             }
         }
     }

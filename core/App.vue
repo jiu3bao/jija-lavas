@@ -3,7 +3,7 @@
         <el-container>
             <el-header class='header'>
                 <div class='left'>
-                    <img src='static/img/loginlogo@2x.png'>
+                    <img src='../static/img/loginlogo@2x.png'>
                     <p>云南省建设工程材料及设备价格监测系统</p>
                 </div>
                 <div class='right'>
@@ -15,7 +15,7 @@
             <el-container style='height:100%'>
                 <el-aside width="100px">
                     <el-menu
-                        default-active="/"
+                        :default-active="$route.path"
                         class="el-menu-vertical-demo"
                         background-color="#2E3447"
                         text-color="#fff"

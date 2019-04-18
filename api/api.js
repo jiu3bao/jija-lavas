@@ -2,12 +2,14 @@ import axios, { AxiosResponse } from 'axios'
 import qs from 'qs'
 
 const service = axios.create({
-    baseURL: '/api',
+	baseURL: '/api',
+	// baseURL:'/',
     withCredentials: false,
     headers: { 'Content-Type': 'application/json;charset=UTF-8' }
 })
 const formser = axios.create({
-    baseURL: '/api',
+	baseURL: '/api',
+	// baseURL:'/',
     withCredentials: false,
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
 })
@@ -37,7 +39,7 @@ const api = {
         }
     },
     get_cate(data) {
-		// return service.post('/PageMaterialController/getMaterialsAndClass', {})
+		return service.post('/PageMaterialController/getMaterialsClass', {})
         if(data) {
             return {
                 data:{
@@ -253,7 +255,7 @@ const api = {
         }
     },
     get_cate_data(data) {
-		// return service.post('/PageMaterialController/findByTime',data)
+		return service.post('/PageMaterialController/getMaterialsInfo',data)
         if(data) {
             return {
                 data:{
@@ -285,7 +287,10 @@ const api = {
                 code:200
             }
         }
-    },
+	},
+	get_area_data(data) {
+		return service.post('PageMaterialController/getMaterialsInfoByArea', data)
+	},
     get_month_data(data) {
         const par = data
         //return service.post('/idxapi/getCategory',data)
@@ -398,7 +403,7 @@ const api = {
     },
     login (data) {
 		//let par = qs.stringify(data)
-		return service.post('/SystemUserController/login',data)
+		return service.post('/PageUserController/login',data)
         if(data.name != 'admin') {
             return {
                 msg: '该账号无效',
@@ -424,22 +429,39 @@ const api = {
         }
 	},
 	get_reports(data) {
-		return service.post('/PageReportController/findListByPage', data)
+		if(data) data = qs.stringify(data, { allowDots: true })
+		return formser.post('/PageReportController/findListByPage', data)
 	},
 	get_reports_detail(data) {
 		if(data) data = qs.stringify(data, { allowDots: true })
 		return formser.post('/PageReportController/getReportById', data)
 	},
+	updata_report(data) {
+		if(data) data = qs.stringify(data, { allowDots: true })
+		return formser.post('/PageReportController/updateReport', data)
+	},
+	add_report(data) {
+		if(data) data = qs.stringify(data, { allowDots: true })
+		return formser.post('/PageReportController/addReport', data)
+	},
 	get_subscrib(data) {
+		if(data) data = qs.stringify(data, { allowDots: true })
 		return formser.post('/PageSubscriptionController/findPage', data)
 	},
 	delete_sub(data) {
+		if(data) data = qs.stringify(data, { allowDots: true })
 		return formser.post('/PageSubscriptionController/delete',data)
 	},
+	add_sub(data) {
+		if(data) data = qs.stringify(data, { allowDots: true })
+		return formser.post('/PageSubscriptionController/add',data)
+	},
 	get_help(data) {
+		if(data) data = qs.stringify(data, { allowDots: true })
 		return formser.post('/pageHelperController/findHelperByPage', data)
 	},
 	get_help_detail(data) {
+		if(data) data = qs.stringify(data, { allowDots: true })
 		return formser.post('/pageHelperController/getArtInfo', data)
 	},
 	get_msg(data) {

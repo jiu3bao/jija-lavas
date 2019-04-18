@@ -1,5 +1,5 @@
 <template>
-    <div class="page-index">
+    <div class="page-index" v-loading="loading">
         <div class='breadcrumb'>
             <p @click='backYN'>云南省</p>
             <p v-show='area.name&&area.name.length>0'>
@@ -22,25 +22,28 @@
             </el-date-picker>
         </div>
         <div style='height:100%;position:relative;padding-top:94px;box-sizing:border-box'>
+            <div class='list-head first-level'>
+                <p>材料</p>
+                <p>价格</p>
+                <p>涨跌</p>
+            </div>
             <div class='content'>
                 <ul class='cate-list'>
                     <li class='first-level' v-for='(item,index) in cateList' :key='item.id'>
                         <p>{{item.name}}</p>
-                        <p>{{item.date&&item.date.length>0?item.date[0].price.toFixed(2):''}}</p>
+                        <p>{{item.price}}</p>
                         <p>
-                            {{item.date&&item.date.length>0?item.date[0].mindex.toFixed(2):''}} 
-                            <i class='iconfont iconicon-arrow-top4' v-if='item.date&&item.date[0].mindex>0'></i>
-                            <i class='iconfont iconicon-arrow-top4 trans' v-if='item.date&&item.date[0].mindex<0'></i>
+                            {{item.huanbi}}% 
+                            <i class='iconfont iconicon-arrow-top4' v-if='item.huanbi>0'></i>
+                            <i class='iconfont iconicon-arrow-top4 trans' v-if='item.huanbi<0'></i>
                         </p>
                     </li>
                 </ul>
             </div>
             <div class='map-box'>
-                <Map :areaList='areaList'></Map>
-                <img src='static/img/line.png'>
+                <Map :areaList='areaList' :map_data='map_data' ></Map>
+                <img src='../../static/img/line.png'>
             </div>
-            
-            
         </div>
     </div>
 </template>
@@ -77,11 +80,26 @@ export default {
             scrollIndex:0,
             scrolling:null,//跑马灯计时器
             areaList:[],
+            map_data:[],
+            loading:false
         }
     },
     computed:{
         area() {
             return this.$store.state.map.chosed_map
+        }
+    },
+    watch:{
+        area:{
+            handler(val) {
+                if(val.id) {
+                    this.area_code = val.id
+                } else {
+                    this.area_code = ''
+                }
+                this.get_cate_data()
+            },
+            deep:true
         }
     },
     components:{
@@ -95,48 +113,40 @@ export default {
         if(month<10) month = '0'+month
         if(exmonth<10) exmonth = '0'+exmonth
         this.month = [year+'-' + exmonth, year+'-' + month]
-        this.get_cate()
+        this.get_cate_data()
         this.get_area()
+        
     },
     mounted() {
         this.start()
     },
     methods: {
-        async get_cate() {
-            const res = await api.get_cate({a:1})
-            res.data.data.filter(item => {
-                const data = {
-                    //area_id: this.area_code,
-                    startTime: this.month[0],
-                    endTime: this.month[1],
-                    cateId: item.id
-                }
-                const r = api.get_cate_data(data)
-                item.date = r.data.data
-            })
-            this.cateList = res.data.data  
-            console.log(this.cateList)
-        },
-        async get_cate_data() {
+        async get_cate_data() { //获取一级类及数据 
+            this.loading = true
             const data = {
                 startTime: this.month[0],
                 endTime: this.month[1],
-                //area_id: this.area_code,
+                pid: 0,
+                area: this.area_code,
             }
             const res = await api.get_cate_data(data)
+            this.cateList = res.data
+            this.get_area_data()
         },
         scroll() {
             const _this = this
             $(".content ul").animate({"margin-top":"-"+40*this.scrollIndex+"px"}, function() {
                 _this.scrollIndex++
+                 
                 if(_this.scrollIndex == _this.cateList.length) {
                     _this.scrollIndex =0
                 }
+                _this.map_data = _this.cateList[_this.scrollIndex].area_data
             });
         },
         start() {
             clearInterval(this.scrolling);
-            this.scrolling = setInterval(this.scroll, 2000);
+            this.scrolling = setInterval(this.scroll, 5000);
             const _this = this
             $('.content').hover(function() {
                 clearInterval(_this.scrolling);
@@ -150,13 +160,51 @@ export default {
         },
         backYN() {
             this.$store.commit('map/SET_CHOSED_MAP', {})
-            // this.area_code = ''
-            // this.area = ''
         },
         async get_area() {
             const res = await api.get_area()
-            console.log(res)
             this.areaList = res.data
+        },
+        async get_area_data() {
+            const data = {
+                area:this.area_code && this.area_code.length>0?this.area_code:'53',
+                level: '1'
+            }
+            const res = await api.get_area_data(data)
+            const list = res.data
+            // let cate = []
+            
+            this.cateList.forEach(cate => {
+                cate.area_data = []
+                list.forEach(item => {
+                    if(cate.cid == item.mid) {
+                        cate.area_data.push(item)
+                    }
+                })
+            })
+            // list.forEach((item,index) => {
+            //     if(index == 0) {
+            //         let obj = {
+            //             cate_id: item.mid,
+            //             cate_name: item.mat_name,
+            //             area_data:[item]
+            //         }
+            //         cate.push(obj)
+            //     } else {
+            //         if(item.mid == list[index-1].mid) {
+            //             cate[cate.length-1].area_data.push(item)
+            //         } else {
+            //             let obj = {
+            //                 cate_id: item.mid,
+            //                 cate_name: item.mat_name,
+            //                 area_data:[item]
+            //             }
+            //             cate.push(obj)
+            //         }
+            //     }
+            // })
+            this.map_data = this.cateList[0].area_data
+            this.loading = false
         }
     },
     updated() {
@@ -241,6 +289,9 @@ export default {
     //position absolute
     //box-shadow 0px 10px 12px 0px rgba(62,128,195,0.1)
     //border-radius 4px
+.list-head
+    width 400px
+    margin auto
 
 .trans 
     transform rotate(180deg)

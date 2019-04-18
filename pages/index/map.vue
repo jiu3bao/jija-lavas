@@ -1,5 +1,5 @@
 <template>
-    <div class='map' id='map'>
+    <div class='map' id='map' v-loading="loading">
             <!--YN @choseMap='chose_map' v-if='!city_code || city_code.length ==0'></YN>
             <DQ v-if='city_code == "533400000000"' @showIfra = 'show_ifra'></DQ>
             <NJ v-if='city_code == "533300000000"' @showIfra = 'show_ifra'></NJ>
@@ -61,11 +61,15 @@ import echarts from 'echarts'
 export default {
     data() {
         return {
-            //area_item: this.$store.state.map.chosed_map
+            area_data:[],
+            loading:false
         }
     },
     props:{
-        areaList: Array
+        areaList: Array,
+        map_data: {
+            type: Array
+        }
     },
     computed:{
         area_item() {
@@ -75,17 +79,75 @@ export default {
     watch:{
         area_item:{
             handler(val) {
-                console.log(val,12123)
                 this.chose_map(val)
             },
             deep:true
+        },
+        map_data: {
+            handler(val) {
+                this.area_data = []
+                val.forEach(item => {
+                    let color
+                    if(item.huanbi > 3) {
+                        color = '#FF4D00'
+                    } else if(item.huanbi > 2) {
+                        color = '#FF8B00'
+                    } else if(item.hunabi >1) {
+                        color = '#FFC000'
+                    } else if(item.huanbi > 0) {
+                        color = '#B9D390'
+                    } else if(item.huanbi > -1) {
+                        color = '#9FC88C'
+                    } else if(item.huanbi > -2) {
+                        color = '#8CC8B0'
+                    } else {
+                        color = '#8CADC8'
+                    }
+                    let obj = {
+                        name:item.area_name,
+                    }
+                    obj.itemStyle= {
+                        normal:{
+                            show:true,
+                            areaColor:'#FF4D00',
+                            label:{
+                                show:true,
+                                color:'#fff',
+                                fontSiae:'14px' 
+                            },
+                            areaStyle:{
+                                color:'#FF4D00',
+                            },
+                            areaColor:color,
+                            borderWidth:1,
+                            borderColor:'#fff',
+                        },
+                        emphasis: {
+                            show:false,
+                            label: {
+                                show: true,//选中状态是否显示省份名称
+                                color:'#fff',//修改字体颜色
+                                fontSiae:'14px' 
+                            },
+                            textStyle:{
+                                color:'#fff',
+                            },
+                            areaColor:color,
+                        }
+                    }
+                    this.area_data.push(obj)
+                })
+                this.chose_map(this.$store.state.map.chosed_map)
+            },
+            deep: true
         }
     }, 
     mounted() {
-        this.chose_map()
+        //this.chose_map()
     },
     methods:{
         chose_map(area) {
+            this.loading = true
             if(area&& area.name) {
                 switch (area.name) {
                     case '昆明市': 
@@ -157,6 +219,29 @@ export default {
                 })
             })
             chart.setOption({
+                // dataRange: {
+                //     textStyle : {
+                //         color : '#fff'
+                //     },
+                //     splitList : [ {
+                //         start : 1,
+                //         end : 1,
+                //         label : '一级预警',
+                //         color : '#ff3333'
+                //     }, {
+                //         start : 2,
+                //         end : 2,
+                //         label : '二级预警',
+                //         color : '#F0AD4E'
+                //     }, {
+                //         start : 3,
+                //         end : 3,
+                //         label : '三级预警',
+                //         color : '#48D1CC'
+                //     } ],
+                //     calculable : false,
+                //     color : [ '#48D1CC', '#F0AD4E', '#ff3333' ]
+                // },
                 // visualMap: {
                 //     min: 0,
                 //     max: 1500,
@@ -171,41 +256,8 @@ export default {
                 // },
                 series: [{
                     type: 'map',
-                    data: this.$store.state.map.barData,
-                    // map: 'maps',
-                    // aspectScale:1.1,
-                    // itemStyle: {
-                    //     normal: {
-                    //         show:true,
-                    //         label: {
-                    //             show: true,//默认是否显示省份名称 
-                    //             color:'#fff',//修改字体颜色
-                    //             fontSiae:'14px' 
-                    //         },
-                    //         areaColor:'rgb(185, 211, 144)',//设置背景颜色
-                    //         areaStyle:{
-                    //             color:'white',
-                    //         },
-                    //         borderWidth:1,
-                    //         borderColor:'#fff',//设置边框颜色
-                    //     },
-                    //     emphasis: {//鼠标移入动态的时候显示的默认样式
-                    //         show:false,
-                    //         label: {
-                    //             show: true,//选中状态是否显示省份名称
-                    //             color:'#fff',//修改字体颜色
-                    //             fontSiae:'14px' 
-                    //         },
-                    //         textStyle:{
-                    //             color:'fff',
-                    //         },
-                    //         areaColor:'rgb(185, 211, 144)',
-                    //     },
-                    // }
-                }],
-                geo: {
-                    map:'maps',
-                    regions:color_setting,
+                    data: this.area_data,
+                    map: 'maps',
                     aspectScale:1.1,
                     itemStyle: {
                         normal: {
@@ -235,9 +287,44 @@ export default {
                             areaColor:'rgb(185, 211, 144)',
                         },
                     }
-                }
+                }],
+                // geo: {
+                //     map:'maps',
+                //     regions:color_setting,
+                //     aspectScale:1.1,
+                //     itemStyle: {
+                //         normal: {
+                //             show:true,
+                //             label: {
+                //                 show: true,//默认是否显示省份名称 
+                //                 color:'#fff',//修改字体颜色
+                //                 fontSiae:'14px' 
+                //             },
+                //             areaColor:'rgb(185, 211, 144)',//设置背景颜色
+                //             areaStyle:{
+                //                 color:'white',
+                //             },
+                //             borderWidth:1,
+                //             borderColor:'#fff',//设置边框颜色
+                //         },
+                //         emphasis: {//鼠标移入动态的时候显示的默认样式
+                //             show:false,
+                //             label: {
+                //                 show: true,//选中状态是否显示省份名称
+                //                 color:'#fff',//修改字体颜色
+                //                 fontSiae:'14px' 
+                //             },
+                //             textStyle:{
+                //                 color:'fff',
+                //             },
+                //             areaColor:'rgb(185, 211, 144)',
+                //         },
+                //     }
+                // }
             });
+            this.loading = false
             chart.on("click", par => {
+                console.log(par)
                 const area_item = this.areaList.find(item => {
                     return item.name == par.name
                 })

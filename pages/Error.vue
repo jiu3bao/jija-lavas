@@ -1,7 +1,7 @@
 <template>
     <div class="page-error">
         <div class='center'>
-            <img src='static/img/duanwang.png'>
+            <img src='../static/img/duanwang.png'>
             <p class='msg'>{{message}}</p>
         </div>
     </div>
