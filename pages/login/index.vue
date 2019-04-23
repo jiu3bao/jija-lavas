@@ -67,11 +67,13 @@ export default {
             const res = await api.login(data)
             if(res.data.user) {
                 this.$store.commit('login/setToken', res.data.user.token)
+                sessionStorage.setItem('token', res.data.user.token)
+                sessionStorage.setItem('username', res.data.user.name)
                 this.$store.commit('login/setUSER_NAME', res.data.user.name)
                 this.$store.commit('login/setUSER_ID',res.data.user.id)
                 this.$router.replace('/')
             } else {
-                if(res.data.message == '此手机号还没注册') {
+                if(res.data.message == '此手机号未注册') {
                     this.error1 = res.data.message
                 } else if(res.data.message == "密码错误") {
                     this.error2 = res.data.message
@@ -83,7 +85,7 @@ export default {
                 this.error1 = '请输入账号'
                 return 
             } else if(!this.password || this.password.length==0) {
-                this.error1 = '请输入密码'
+                this.error2 = '请输入密码'
                 return 
             } else if(!(/^1([38][0-9]|4[579]|5[0-3,5-9]|6[6]|7[0135678]|9[89])\d{8}$/.test(this.name))) {
                 this.error1 = '手机号格式不正确'
@@ -100,7 +102,7 @@ export default {
         position fixed
         top 0
         left 0
-        background url('../../static/img/beijing.png') no-repeat
+        background url('/static/img/beijing.png') no-repeat
         background-size 100% 100% 
         .input-box
             display flex
@@ -118,7 +120,7 @@ export default {
                 width 340px
                 height 100%
                 flex-shrink 0
-                background url('../../static/img/jianzhu.png') no-repeat
+                background url('/static/img/jianzhu.png') no-repeat
                 background-size 100% 100%
                 text-align center
                 padding-top 135px

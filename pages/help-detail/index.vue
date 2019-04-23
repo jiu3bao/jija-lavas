@@ -2,9 +2,9 @@
     <div style='height:100%;overflow-y:scroll;position:relative'>
         <div class='breadcrumb'>
             <p>我的首页</p>
-            <p v-if='true'>
+            <p v-if='true' >
                 >
-                <span @click='$router.back()'>帮助中心</span>
+                <span @click='$router.back()' class='blue border-b' style='cursor:pointer'>帮助中心</span>
             </p>
             <p v-if='true'>
                 >

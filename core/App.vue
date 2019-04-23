@@ -79,6 +79,19 @@ export default {
             mainHeight: 0
         };
     },
+    created() {
+        const token = sessionStorage.getItem('token')
+        const username = sessionStorage.getItem('username')
+        if(token && token.length>0 && username && username.length>0) {
+            this.$store.commit('login/setToken', token)
+            this.$store.commit('login/setUSER_NAME', username)
+        } else {
+            this.$store.commit('login/setToken', '')
+            this.$store.commit('login/setUSER_NAME', '')
+            sessionStorage.removeItem('token')
+            sessionStorage.removeItem('username')
+        }
+    },
     methods: {
         loginOrOut() {
             if(this.userName&&this.userName.length>0) {
@@ -89,10 +102,13 @@ export default {
                     }).then(() => {
                         this.$store.commit('login/setToken', '')
                         this.$store.commit('login/setUSER_NAME', '')
+                        sessionStorage.removeItem('token')
+                        sessionStorage.removeItem('username')
                         this.$message({
                             type: 'success',
                             message: '退出成功!'
                         });
+                        this.$router.push('/login')
                     }).catch(() => {
                         this.$message({
                             type: 'info',

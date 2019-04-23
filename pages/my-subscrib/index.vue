@@ -39,10 +39,10 @@
                                 </h1>
                                 <p>更新日期 {{item.createTime.split('T')[0]}} </p>
                             </div>
-                            <div>
+                            <!--div>
                                 <a>查看详情></a>
                                 <i class='iconfont iconicon' @click='delet_item(item.id,index)'></i>
-                            </div>
+                            </div-->
                         </li>
                     </ul>
                     <el-pagination
@@ -106,8 +106,12 @@
                 <el-form-item label="时间区间" :label-width="formLabelWidth" prop='bookDate'>
                     <el-date-picker
                         v-model="form.bookDate"
-                        type="month"
-                        placeholder="选择月">
+                        type="monthrange"
+                        value-format='yyyy-MM'
+                        range-separator="至"
+                        start-placeholder="开始月份"
+                        end-placeholder="结束月份"
+                        :picker-options='options'>
                     </el-date-picker>
                 </el-form-item>
                 <el-form-item label="材料类型" :label-width="formLabelWidth" prop='materialID'>
@@ -175,10 +179,10 @@ export default {
             dialogFormVisible: false,
             formLabelWidth:'90px',
             form:{
-                title:'ssss',
-                bookDate:'2019-03',
-                materialID:'1',
-                areaID:[53],
+                title:'',
+                bookDate:'',
+                materialID:'',
+                areaID:[],
                 isPush:false
             },
             rules:{
@@ -258,10 +262,16 @@ export default {
             }
             const res = await api.get_subscrib(data)
             this.total = res.data.count
-            res.data.list.forEach(item => {
-                item.checked = false
-            })
-            this.subscrib_list = res.data.list
+            if(!res.data.list) {
+                this.subscrib_list = [] 
+                return 
+            } else {
+                res.data.list.forEach(item => {
+                    item.checked = false
+                })
+                this.subscrib_list = res.data.list
+            }
+            
         },
         async get_msg() {
             const data = {
@@ -276,8 +286,8 @@ export default {
             this.total = res.data.total
         },
         async get_cate() {
-            const res = await api.get_cate({a:1})
-            this.cateList = res.data.data
+            const res = await api.get_cate()
+            this.cateList = res.data
         },
         async get_area() {
             const res = await api.get_area()
@@ -398,6 +408,10 @@ export default {
                     this.form.token = //'eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiIyIiwiZXhwIjoxNTU1NjQwMzA4LCJuYmYiOjE1NTU1NTM5MDh9.bnac7MF4SqPSV0mv-FtSb0LI0KS0Ds0JiNPKd_dO0SE'
                             this.$store.state.login.token
                     this.form.areaID = this.form.areaID.toString()
+                    this.form.startTimeStr = this.form.bookDate[0]
+                    this.form.endTimeStr = this.form.bookDate[1]
+                    delete this.form.bookDate
+                    console.log(this.form)
                     api.add_sub(this.form).then(r => {
                         this.dialogFormVisible = false
                         this.$message({
@@ -406,6 +420,13 @@ export default {
                         });
                         this.pageNum = 1
                         this.get_data()
+                        this.form = {
+                            title:'',
+                            bookDate:'',
+                            materialID:'',
+                            areaID:[],
+                            isPush:false
+                        }
                     })
                 } else {
                     return false;

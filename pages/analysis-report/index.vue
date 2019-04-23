@@ -118,9 +118,12 @@
                 <el-form-item label="时间区间" :label-width="formLabelWidth" prop='timeInterval'>
                     <el-date-picker
                         v-model="form.timeInterval"
-                        type="month"
-                        value-format="yyyy-MM"
-                        placeholder="选择月">
+                        type="monthrange"
+                        value-format='yyyy-MM'
+                        range-separator="至"
+                        start-placeholder="开始月份"
+                        end-placeholder="结束月份"
+                        :picker-options='options'>
                     </el-date-picker>
                 </el-form-item>
                 <el-form-item label="材料类型" :label-width="formLabelWidth" prop='materialClassID'>
@@ -273,8 +276,8 @@ export default {
             this.areaList = res.data
         },
         async get_cate() {
-            const res = await api.get_cate({a:1})
-            this.cateList = res.data.data
+            const res = await api.get_cate()
+            this.cateList = res.data
         },
         async ref() {
             this.report = [[],[]]
@@ -290,8 +293,12 @@ export default {
                 if (valid) {
                     this.form.contrastRegionID = this.form.area.toString()
                     this.form.token = this.$store.state.login.token
+                    this.form.startTimeStr = this.form.timeInterval[0]
+                    this.form.endTimeStr = this.form.timeInterval[1]
                     delete this.form.cate
                     delete this.form.area
+                    delete this.form.timeInterval
+                    console.log(this.form)
                     api.add_report(this.form).then(r => {
                         this.dialogFormVisible = false
                         this.$message({
@@ -300,6 +307,12 @@ export default {
                         });
                         this.pageNum =1
                         this.get_reports()
+                        this.form = {
+                            name:'',
+                            timeInterval:'',
+                            materialClassID:'',
+                            area:[]
+                        }
                     })
                 } else {
                     return false;

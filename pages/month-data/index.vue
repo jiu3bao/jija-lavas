@@ -50,6 +50,10 @@
                         <h1 class='title'>{{activeName}}</h1>
                         <div style='background:#fff;padding:40px;box-sizing:border-box;height:100%;box-shadow:0px 4px 8px 0px rgba(62,128,195,0.04);border-radius:4px;'>
                             <div class='charts' id='main'></div>
+                            <div v-if='tableData.length ==0' class='nodata pos'>
+                                <i class='iconfont iconkongbaiye'></i>
+                                <p>没有找到相关数据</p>
+                            </div>
                         </div>
                     </el-tab-pane>
                     <!--右侧折线图 end-->
@@ -118,9 +122,17 @@
                                             v-for='(item, index) in data.data[0]'
                                             :key='index'
                                             prop="name"
-                                            :label="item.asmdate?item.asmdate.split(' ')[0]:''">
-                                            <template >
-                                                {{scoped.row[index][tab]}} {{scoped.row[index]}}
+                                            :label="item.asmdate?item.asmdate.substr(0,7):''">
+                                            <template slot-scope="scoped" v-if='scoped.row[index][tab]'>
+                                                <span v-if="tab == 'price'">
+                                                    {{scoped.row[index][tab] != '-'?Number(scoped.row[index][tab]).toFixed(2):"-"}}
+                                                </span>
+                                                <span v-else>
+                                                    {{scoped.row[index][tab].length>0?Number(scoped.row[index][tab]).toFixed(4):'-'}}
+                                                </span>
+                                            </template>
+                                            <template v-else>
+                                                -
                                             </template>
                                         </el-table-column>
                                     </el-table-column>
@@ -155,7 +167,7 @@ export default {
             ],
             options:{
                 disabledDate(time) {
-                    return time.getTime() > Date.now();
+                    return (time.getTime() > Date.now() || time.getFullYear()<2018);
                 },
             },
             areaList:[],
@@ -176,7 +188,7 @@ export default {
             checkAll:false,
             isIndeterminate:true,
             originChecked:false,
-            showTop:false
+            showTop:false,
 
         }
     },
@@ -205,6 +217,7 @@ export default {
             })
         },
         activeName(val) {
+            this.tableData = []
             this.get_data()
         },
         constractList: {
@@ -246,12 +259,16 @@ export default {
         handleNodeClick(data) {
             this.chosed_cate = data
             this.constractList = []
+            this.tableData = []
+            let myChart = echarts.init(document.getElementById('main'))
+            myChart.dispose()
             this.get_data()
         },
         ref() {
             if(this.activeName != '数据统计表') {
                 let myChart = echarts.init(document.getElementById('main'))
                 myChart.dispose()
+                this.constractList = []
                 this.get_data()
             } else {
                 if(this.constractList.length > 0) {
@@ -261,55 +278,67 @@ export default {
                             endDate: this.month[1],
                             area: this.area.toString(),
                             id: item.id,
-                            orderType:1
+                            orderType:'1',
+                            type:'0',
+                            level: this.chosed_cate.level?this.chosed_cate.level:'2'
                         }
                         api.get_cate_data(data).then(r => {
-                            const ll = r.data
-                            console.log(ll)
-                            let area_list=[]
-                            if(ll.length>0) {
-                                ll.map(item => {
-                                    let has = false
-                                    if(area_list.length ==0) {
-                                        area_list.push([])
-                                    }
-                                    area_list.map(arr => {
-                                        if(arr.length ==0) {
-                                            arr.push(item)
-                                            has = true
-                                        } else {
-                                            if(arr[0].area == item.area) {
+                            if(!r.data || r.data.length ==0) {
+                                item.data = []
+                            } else {
+                               let area_list=[]
+                                const ll = r.data
+                                if(ll.length>0) {
+                                    ll.map(item => {
+                                        let has = false
+                                        if(area_list.length ==0) {
+                                            area_list.push([])
+                                        }
+                                        area_list.map(arr => {
+                                            if(arr.length ==0) {
                                                 arr.push(item)
                                                 has = true
                                             } else {
-                                                has = false
+                                                if(arr[0].area == item.area) {
+                                                    arr.push(item)
+                                                    has = true
+                                                } else {
+                                                    has = false
+                                                }
                                             }
+                                        })
+                                        if(!has) {
+                                            area_list.push([item])
                                         }
                                     })
-                                    if(!has) {
-                                        area_list.push([item])
-                                    }
-                                })
-                            }
-                            console.log(item.data)
-                            item.data = area_list
-                            item.data.filter(son => {
-                                if(son[0].area.length > '2') {
-                                    this.areaList.forEach(area => {
-                                        if(area.id == son[0].area) {
-                                            son[0].add = area.name
-                                            return
-                                        }
-                                    })
-                                } else {
-                                    son[0].add = '全省'
                                 }
-                            })
+                                item.data = area_list
+                                item.data.filter(son => {
+                                    if(son[0].area.length > '2') {
+                                        this.areaList.forEach(area => {
+                                            if(area.id == son[0].area) {
+                                                son[0].add = area.name
+                                                return
+                                            }
+                                        })
+                                    } else {
+                                        son[0].add = '全省'
+                                    }
+                                    let x = this.getMonthBetween(this.month[0], this.month[1])
+                                    for(let i =0, len = x.length;i<len;i++) {
+                                        if(!son[i] || x[i] != son[i].asmdate.split(' ')[0].substr(0,7)) {
+                                            son.splice(i,0,{
+                                                price:'-',
+                                                add:son[0].add
+                                            })
+                                        }
+                                    }
+                                }) 
+                            }
+                            
+                            
+
                         })
-                        // const res = api.get_month_data(data) 
-                        // item.data = res.data.data
-                        
-                        console.log(item.data,1111111)
                     })
                 }
             }
@@ -321,38 +350,44 @@ export default {
                 endDate: this.month[1],
                 area: this.area.toString(),
                 id: this.chosed_cate.id,
-                orderType:1
+                orderType:'1',
+                type:'0',
+                level: this.chosed_cate.level?this.chosed_cate.level:'2'
             }
             const res = await api.get_cate_data(data) 
-
-            const ll = res.data
-            let area_list=[]
-            if(ll.length>0) {
-                ll.map(item => {
-                    let has = false
-                    if(area_list.length ==0) {
-                        area_list.push([])
-                    }
-                    area_list.map(arr => {
-                        if(arr.length ==0) {
-                            arr.push(item)
-                            has = true
-                        } else {
-                            if(arr[0].area == item.area) {
+            if(!res.data || res.data.length ==0) {
+                this.tableData = []
+            } else {
+                const ll = res.data
+                let area_list=[]
+                if(ll.length>0) {
+                    ll.map(item => {
+                        let has = false
+                        if(area_list.length ==0) {
+                            area_list.push([])
+                        }
+                        area_list.map(arr => {
+                            if(arr.length ==0) {
                                 arr.push(item)
                                 has = true
                             } else {
-                                has = false
+                                if(arr[0].area == item.area) {
+                                    arr.push(item)
+                                    has = true
+                                } else {
+                                    has = false
+                                }
                             }
+                        })
+                        if(!has) {
+                            area_list.push([item])
                         }
+                        this.tableData = area_list
                     })
-                    if(!has) {
-                        area_list.push([item])
-                    }
-                    this.tableData = area_list
-     
-                })
+                }
             }
+            
+            // console.log(this.tableData,'2121321321')
             //只有在tab=='动态图表时渲染图'
             if(this.tableData.length >0){
                 let lengend = []
@@ -370,29 +405,61 @@ export default {
                         }
                     })
                     let yy = []
-                    item.map(data => {
-                        if(x.length != item.length) {
-                            x.push(data.asmdate.split(' ')[0])
+                    x = this.getMonthBetween(this.month[0], this.month[1])
+                    for(let i =0, len = x.length;i<len;i++) {
+                        if(!item[i] || x[i] != item[i].asmdate.split(' ')[0].substr(0,7)) {
+                            item.splice(i,0,{
+                                price:'-',
+                                add:item[0].add
+                            })
                         }
+                    }
+                    item.forEach(data => {
                         yy.push(data.price)
                     })
                     y.push({data:yy,type:'line',name:areaname})
                 })
                 
-                
                 if(this.activeName == '数据统计表') {
                     const obj = {data:this.tableData, name: this.chosed_cate.name, tab:'price',checked:false,id:this.chosed_cate.id}
                     this.constractList = []
                     this.constractList.push(obj)
-                    console.log(this.tableData)
                     return 
                 }
                 this.init(x,y,lengend)
+            } else {
+                this.constractList = []
             }
         },
+        getMonthBetween(start,end){  
+            let result = [];  
+            let s = start.split("-");  
+            let e = end.split("-");  
+            let min = new Date();  
+            let max = new Date();  
+            min.setFullYear(s[0],s[1]-1);  
+            max.setFullYear(e[0],e[1]-1);   
+            let curr = min; 
+            while(curr <= max){  
+                let month = curr.getMonth();  
+                let fm 
+                if(month<9&&month>=0) 
+                    { fm = '0'+(month+1)}
 
+                if(month < 0 || month >=9) { fm = month+1}
+                let str=curr.getFullYear()+"-"+(fm);
+                let s=curr.getFullYear()+"-0";
+                if(str==s){
+                    str=curr.getFullYear()+"-12";
+                }
+                result.push(str);  
+                curr.setMonth(month+1);
+            }  
+            return result;  
+        }, 
         init(x,y,lengend=[]) {
-            let myChart = echarts.init(document.getElementById('main'))
+            console.log(x,y,lengend)
+             let myChart = echarts.init(document.getElementById('main'))
             const option = {
             title : {
                 text: '全省各地区“'+this.chosed_cate.name+'”趋势',
@@ -409,18 +476,16 @@ export default {
             grid:{
                 top:'100px',
                 left:'40px',
-                right:'20px'
+                right:'40px'
             },
             tooltip : {
-                trigger: 'axis'
+                trigger: 'axis',
+                position:[10,10]
             },
             toolbox: {
                 show : true,
                 feature : {
-                    // mark : {show: true},
-                    // dataView : {show: true, readOnly: false},
                     magicType : {show: true, type: ['line', 'bar']},
-                    // restore : {show: true},
                     saveAsImage : {show: true}
                 }
             },
@@ -435,6 +500,9 @@ export default {
             yAxis : [
                 {
                     type : 'value',
+                    min:function(val){
+                        return Math.floor(val.min)
+                    }
                 }
             ],
             series : y
@@ -444,23 +512,17 @@ export default {
             myChart.setOption(option);
         },
         async contrast() {
-            // if(has) {
-            //     this.$message({
-            //         message: '该类别已存在',
-            //         type: 'warning'
-            //     });
-            //     return
-            // }
             let data = {
                 startDate: this.month[0],
                 endDate: this.month[1],
                 area: this.area.toString(),
-                // id: this.chosed_cate.id,
-                orderType:1
+                orderType:'1',
+                type:'0',
             }
             let name
             if(this.contrastCate2&&this.contrastCate2.length>0) {
                 data.id = this.contrastCate2
+                data.level = 2
                 this.cateList_two.forEach(item => {
                     if(item.id == this.contrastCate2) {
                         name = item.name
@@ -469,6 +531,7 @@ export default {
                 })
             } else if (this.contrastCate1&&this.contrastCate1.length>0) {
                 data.id = this.contrastCate1
+                data.level = 1
                 this.cateList.forEach(item => {
                     if(item.id == this.contrastCate1) {
                         name = item.name
@@ -483,9 +546,9 @@ export default {
                 return false
             }
             const res = await api.get_cate_data(data)
+            if(!res.data || res.data.length ==0) return
             let ll = res.data
             let area_list=[]
-            console.log(ll,'llll')
             if(ll.length>0) {
                 ll.map(item => {
                     let has = false
@@ -511,7 +574,6 @@ export default {
                     //this.tableData = area_list
                 })
             }
-            console.log(area_list,'aaaaa')
             area_list.filter(son => {
                 this.areaList.forEach(area => {
                     if(son[0].area.length > '2') {
@@ -523,15 +585,22 @@ export default {
                         son[0].add = '全省'
                     } 
                 })
+                let x = this.getMonthBetween(this.month[0], this.month[1])
+                for(let i =0, len = x.length;i<len;i++) {
+                    if(!son[i] || x[i] != son[i].asmdate.split(' ')[0].substr(0,7)) {
+                        son.splice(i,0,{
+                            price:'-',
+                            add:son[0].add
+                        })
+                    }
+                }
             })
             const obj = {data:area_list, name: name, tab:'price',checked:false,id:data.id}
-            console.log(obj,12312312321)
             this.$message({
                 message: '已成功添加对比',
                 type: 'success'
             });
             this.constractList.push(obj)
-            console.log(this.constractList)
 
         },
         handleCheckAllChange(val) {
@@ -587,20 +656,6 @@ export default {
                     message: '已取消删除'
                 });          
             });
-        }
-    },
-    filter:{
-        formateArea(val) {
-            if(val.length > '2') {
-                // this.areaList.forEach(area => {
-                //     if(area.id == val) {
-                //         return area.name
-                        
-                //     }
-                // })
-            } else {
-                return'全省'
-            } 
         }
     },
     beforeRouteLeave(to, from, next) {
@@ -705,4 +760,7 @@ export default {
     .show
         height auto
         translate .3s   
+    .pos 
+        position absolute
+        top 0
 </style>

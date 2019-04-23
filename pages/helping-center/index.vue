@@ -53,7 +53,7 @@ export default {
             total: 0,
             article_list:[],
             pageNum:1,
-            pageSize:5
+            pageSize:10
         }
     },
     created() {

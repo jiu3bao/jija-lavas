@@ -14,7 +14,7 @@ module.exports = {
     build: {
         ssr: false,
         path: BUILD_PATH,
-        publicPath: '/',
+        publicPath: './',
         ssrCopy: isDev ? [] : [
             {
                 src: 'server.prod.js'
@@ -26,7 +26,7 @@ module.exports = {
     },
     router: {
         mode: 'hash',
-        base: '/',
+        base: './',
         pageTransition: {
             type: 'fade',
             transitionClass: 'fade'

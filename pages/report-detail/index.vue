@@ -2,9 +2,9 @@
     <div style='height:100%;overflow-y:scroll;position:relative'>
         <div class='breadcrumb'>
             <p>我的首页</p>
-            <p v-if='true'>
+            <p v-if='true' style='cursor:pointer'>
                 >
-                <span @click='$router.back()'>分析报告</span>
+                <span @click='$router.back()' class='blue border-b'>分析报告</span>
             </p>
             <p v-if='true'>
                 >
@@ -13,8 +13,14 @@
             <!--p class='time'>{{month}}-{{month}}</p-->
         </div>
         <el-container style='padding-top:66px;flex-direction:column;box-sizing:border-box;'>
-            <el-button type='primary' style='align-self: flex-end;width:100px;margin-bottom:12px' @click='addVisible = true' v-if='!detail.mark ||detail.mark.length==0'>添加备注</el-button>
-            <el-button type='primary' style='align-self: flex-end;width:100px;margin-bottom:12px' @click='dialogVisible = true;mark=detail.mark' v-else>查看备注</el-button>
+            <div style='align-self: flex-end;width:100px;margin-bottom:22px' @click='addVisible = true' v-if='!detail.mark ||detail.mark.length==0' class='el-button--primary el-button'>
+                添加备注
+            </div>
+            <div style='align-self: flex-end;width:100px;margin-bottom:22px' @click='dialogVisible = true;mark=detail.mark' v-else class='el-button--primary el-button'>
+               查看备注
+            </div>
+            <!--el-button type='primary' style='align-self: flex-end;width:100px;margin-bottom:22px' @click='addVisible = true' v-if='!detail.mark ||detail.mark.length==0'>添加备注</el-button>
+            <el-button type='primary' style='align-self: flex-end;width:100px;margin-bottom:22px' @click='dialogVisible = true;mark=detail.mark' v-else>查看备注</el-button-->
             <div id="wenzhang">
                 <img src='../../static/img/mark.png' v-if='detail.mark && detail.mark.length>0 && !addVisible'>
 			<div class="head">

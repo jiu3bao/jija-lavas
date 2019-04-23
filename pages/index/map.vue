@@ -88,17 +88,17 @@ export default {
                 this.area_data = []
                 val.forEach(item => {
                     let color
-                    if(item.huanbi > 3) {
+                    if(item.huanbi*100 > 3) {
                         color = '#FF4D00'
-                    } else if(item.huanbi > 2) {
+                    } else if(item.huanbi*100 > 2) {
                         color = '#FF8B00'
-                    } else if(item.hunabi >1) {
+                    } else if(item.hunabi*100 >1) {
                         color = '#FFC000'
-                    } else if(item.huanbi > 0) {
+                    } else if(item.huanbi*100 > 0) {
                         color = '#B9D390'
-                    } else if(item.huanbi > -1) {
+                    } else if(item.huanbi*100 > -1) {
                         color = '#9FC88C'
-                    } else if(item.huanbi > -2) {
+                    } else if(item.huanbi*100 > -2) {
                         color = '#8CC8B0'
                     } else {
                         color = '#8CADC8'
@@ -264,12 +264,12 @@ export default {
                             show:true,
                             label: {
                                 show: true,//默认是否显示省份名称 
-                                color:'#fff',//修改字体颜色
+                                color:'#64696d',//修改字体颜色
                                 fontSiae:'14px' 
                             },
                             areaColor:'rgb(185, 211, 144)',//设置背景颜色
                             areaStyle:{
-                                color:'white',
+                                color:'#64696d',
                             },
                             borderWidth:1,
                             borderColor:'#fff',//设置边框颜色
@@ -278,11 +278,11 @@ export default {
                             show:false,
                             label: {
                                 show: true,//选中状态是否显示省份名称
-                                color:'#fff',//修改字体颜色
+                                color:'#64696d',//修改字体颜色
                                 fontSiae:'14px' 
                             },
                             textStyle:{
-                                color:'fff',
+                                color:'#64696d',
                             },
                             areaColor:'rgb(185, 211, 144)',
                         },
@@ -324,9 +324,9 @@ export default {
             });
             this.loading = false
             chart.on("click", par => {
-                console.log(par)
+                const reg = new RegExp(par.name.substr(0,2))
                 const area_item = this.areaList.find(item => {
-                    return item.name == par.name
+                    return reg.test(item.name)
                 })
                 if(area_item) {
                     this.$store.commit('map/SET_CHOSED_MAP', area_item)

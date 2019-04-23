@@ -14,6 +14,7 @@
                 v-model="year"
                 type="year"
                 placeholder="选择年"
+                :picker-options='options'
                 value-format='yyyy'>
             </el-date-picker>
             <span class="text ml-40">地区</span>
@@ -45,6 +46,10 @@
                         <h1 class='title'>{{activeName}}</h1>
                         <div style='background:#fff;padding:40px;box-sizing:border-box;height:100%;box-shadow:0px 4px 8px 0px rgba(62,128,195,0.04);border-radius:4px;'>
                             <div class='charts' id='main'></div>
+                            <div v-if='tableData.length ==0' class='nodata pos'>
+                                <i class='iconfont iconkongbaiye'></i>
+                                <p>没有找到相关数据</p>
+                            </div>
                         </div>
                     </el-tab-pane>
                     <!--右侧折线图 end-->
@@ -91,13 +96,13 @@
                             </h1>
                             <el-radio-group v-model="data.tab" style="margin-bottom: 30px;">
                                 <el-radio-button label="price">价格</el-radio-button>
-                                <el-radio-button label="zs">指数</el-radio-button>
-                                <el-radio-button label="tb">同比</el-radio-button>
-                                <el-radio-button label="hb">环比</el-radio-button>
+                                <el-radio-button label="exponent">指数</el-radio-button>
+                                <el-radio-button label="tongbi">同比</el-radio-button>
+                                <el-radio-button label="huanbi">环比</el-radio-button>
                             </el-radio-group>
                             <div v-for='tab in tabType' :key='tab'>
                                 <el-table
-                                v-if='data.tab==tab'
+                                :class='data.tab==tab?"show":"op"'
                                 :data="data.data"
                                 style="width: 100%">
                                 <el-table-column
@@ -113,9 +118,17 @@
                                         v-for='(item, index) in data.data[0]'
                                         :key='index'
                                         prop="name"
-                                        :label="item.time">
-                                        <template >
-                                            {{item[tab]}}
+                                        :label="item.asmdate?item.asmdate.substr(0,7):''">
+                                        <template slot-scope="scoped" v-if='scoped.row[index][tab]'>
+                                            <span v-if="tab == 'price'">
+                                                {{scoped.row[index][tab] != '-'?Number(scoped.row[index][tab]).toFixed(2):"-"}}
+                                            </span>
+                                            <span v-else>
+                                                {{Number(scoped.row[index][tab]).toFixed(4)}}
+                                            </span>
+                                        </template>
+                                        <template v-else>
+                                            -
                                         </template>
                                     </el-table-column>
                                 </el-table-column>
@@ -144,28 +157,23 @@ export default {
             activeName:'动态分析图',
             tabType:[
                 'price',
-                'zs',
-                'tb',
-                'hb'
+                'exponent',
+                'tongbi',
+                'huanbi'
             ],
             options:{
                 disabledDate(time) {
-                    return time.getTime() > Date.now();
+                    return (time.getTime() > Date.now() || time.getFullYear()<2018);
                 },
             },
             year:'',
-            areaList:[{
-                value:'',
-                name:''
-            }],
+            areaList:[],
             area:[],
-            clzs:'',
-            cljg:'',
-            chosed_cate:{name:'全类型',id:''},
+            chosed_cate:{},
             cateList:[],
             cateList_two:[],
             defaultProps: {
-                children: 'children',
+                children: 'childrenList',
                 label: 'name'
             },
             tableData:[],
@@ -185,7 +193,6 @@ export default {
     created() {
         this.year = '2019'
         this.get_area()
-        this.get_data()
         this.get_cate()
     },
     watch:{
@@ -193,7 +200,7 @@ export default {
             this.contrastCate2 = ''
             this.cateList.forEach(item => {
                 if(item.id == val) {
-                    this.cateList_two = item.children
+                    this.cateList_two = item.childrenList
                     return false
                 }
             })
@@ -225,45 +232,92 @@ export default {
             this.areaList = res.data
         },
         async get_cate() {
-            const res = await api.get_cate({a:1})
-            this.cateList = res.data.data
+            const res = await api.get_cate()
+            this.cateList = res.data
             this.cateList.map(item => {
-                this.cateList_two.push(...item.children)
+                this.cateList_two.push(...item.childrenList)
             })
             this.handleNodeClick(this.cateList[0])
         },
         handleNodeClick(data) {
             this.chosed_cate = data
             this.constractList = []
+            this.tableData = []
+            let myChart = echarts.init(document.getElementById('main'))
+            myChart.dispose()
             this.get_data()
         },
         ref() {
             if(this.activeName != '数据统计表') {
                 let myChart = echarts.init(document.getElementById('main'))
                 myChart.dispose()
+                this.constractList = []
                 this.get_data()
             } else {
                 if(this.constractList.length > 0) {
                     this.constractList.filter(item => {
                         let data = {
-                            month: this.month,
-                            area: this.area,
-                            clzs: this.clzs,
-                            cljg: this.cljg,
-                            cate_id: item.id
+                            startDate: this.year + '-' +'01',
+                            endDate: this.year + '-' +'12',
+                            area: this.area.toString(),
+                            id: item.id,
+                            orderType:'1',
+                            type:'0',
+                            level: this.chosed_cate.level?this.chosed_cate.level:'2'
                         }
                         
-                        const res = api.get_month_data(data) 
-                        item.data = res.data.data
-                        item.data.forEach(son => {
-                            if(/^\+?[1-9][0-9]*$/.test(son[0].add)) {
-                                this.areaList.forEach(area => {
-                                    if(area.id == son[0].add) {
-                                        son[0].add = area.name
-                                        return
+                        api.get_cate_data(data).then(r => {
+                            if(!r.data || r.data.length ==0) {
+                                const ll = r.data
+                                let area_list=[]
+                                if(ll.length>0) {
+                                    ll.map(item => {
+                                        let has = false
+                                        if(area_list.length ==0) {
+                                            area_list.push([])
+                                        }
+                                        area_list.map(arr => {
+                                            if(arr.length ==0) {
+                                                arr.push(item)
+                                                has = true
+                                            } else {
+                                                if(arr[0].area == item.area) {
+                                                    arr.push(item)
+                                                    has = true
+                                                } else {
+                                                    has = false
+                                                }
+                                            }
+                                        })
+                                        if(!has) {
+                                            area_list.push([item])
+                                        }
+                                    })
+                                }
+                                item.data = area_list
+                                item.data.filter(son => {
+                                    if(son[0].area.length > '2') {
+                                        this.areaList.forEach(area => {
+                                            if(area.id == son[0].area) {
+                                                son[0].add = area.name
+                                                return
+                                            }
+                                        })
+                                    } else {
+                                        son[0].add = '全省'
+                                    }
+                                    let x = this.getMonthBetween(this.year+'-01', this.year+'-12')
+                                    for(let i =0, len = x.length;i<len;i++) {
+                                        if(!son[i] || x[i] != son[i].asmdate.split(' ')[0].substr(0,7)) {
+                                            son.splice(i,0,{
+                                                price:'-',
+                                                add:son[0].add
+                                            })
+                                        }
                                     }
                                 })
                             }
+                            
                         })
                     })
                 }
@@ -272,36 +326,77 @@ export default {
         },
         async get_data() {
             const data = {
-                month: this.month,
-                area: this.area,
-                clzs: this.clzs,
-                cljg: this.cljg,
-                cate_id: this.chosed_cate.id
+                startDate: this.year + '-' +'01',
+                endDate: this.year + '-' +'12',
+                area: this.area.toString(),
+                id: this.chosed_cate.id,
+                orderType:'1',
+                type:'0',
+                level: this.chosed_cate.level?this.chosed_cate.level:'2'
             }
-            const res = await api.get_month_data(data) 
-            this.tableData = res.data.data
+            const res = await api.get_cate_data(data) 
+            if(!res.data || res.data.length ==0) {
+                this.tableData = []
+            }else {
+               const ll = res.data
+                let area_list=[]
+                if(ll.length>0) {
+                    ll.map(item => {
+                        let has = false
+                        if(area_list.length ==0) {
+                            area_list.push([])
+                        }
+                        area_list.map(arr => {
+                            if(arr.length ==0) {
+                                arr.push(item)
+                                has = true
+                            } else {
+                                if(arr[0].area == item.area) {
+                                    arr.push(item)
+                                    has = true
+                                } else {
+                                    has = false
+                                }
+                            }
+                        })
+                        if(!has) {
+                            area_list.push([item])
+                        }
+                        this.tableData = area_list
+        
+                    })
+                } 
+            }
             
             
             //只有在tab=='动态图表时渲染图'
             if(this.tableData.length >0){
                 let lengend = []
                 let x =[], y=[]
-                this.tableData.map(item => {
+                this.tableData.filter(item => {
                     let areaname ='全省'
                     this.areaList.forEach(area => {
-                        if(area.id == item[0].add) {
+                        if(area.id == item[0].area) {
                             lengend.push(area.name)
                             areaname = area.name
                             item[0].add = areaname
                             return
+                        } else {
+                            item[0].add = areaname
                         }
                     })
                     
                     let yy = []
-                    item.map(data => {
-                        if(x.length != item.length) {
-                            x.push(data.x)
+                    x = this.getMonthBetween(this.year+'-01', this.year+'-12')
+                    for(let i =0, len = x.length;i<len;i++) {
+                        if(!item[i] || x[i] != item[i].asmdate.split(' ')[0].substr(0,7)) {
+                            item.splice(i,0,{
+                                price:'-',
+                                add:item[0].add
+                            })
                         }
+                    }
+                    item.forEach(data => {
                         yy.push(data.price)
                     })
                     y.push({data:yy,type:'line',name:areaname})
@@ -314,8 +409,36 @@ export default {
                     return 
                 }
                 this.init(x,y,lengend)
+            } else {
+                this.constractList = []
             }
         },
+        getMonthBetween(start,end){  
+            let result = [];  
+            let s = start.split("-");  
+            let e = end.split("-");  
+            let min = new Date();  
+            let max = new Date();  
+            min.setFullYear(s[0],s[1]-1);  
+            max.setFullYear(e[0],e[1]-1);   
+            let curr = min; 
+            while(curr <= max){  
+                let month = curr.getMonth();  
+                let fm 
+                if(month<9&&month>=0) 
+                    { fm = '0'+(month+1)}
+
+                if(month < 0 || month >=9) { fm = month+1}
+                let str=curr.getFullYear()+"-"+(fm);
+                let s=curr.getFullYear()+"-0";
+                if(str==s){
+                    str=curr.getFullYear()+"-12";
+                }
+                result.push(str);  
+                curr.setMonth(month+1);
+            }  
+            return result;  
+        }, 
         init(x,y,lengend=[]) {
             console.log(x,y,lengend)
             let myChart = echarts.init(document.getElementById('main'))
@@ -361,6 +484,10 @@ export default {
             yAxis : [
                 {
                     type : 'value',
+                    min:function(val){
+                        console.log(val)
+                        return Math.floor(val.min)
+                    }
                 }
             ],
             series : y
@@ -371,15 +498,16 @@ export default {
         },
         async contrast() {
             let data = {
-                month: this.month,
-                area: this.area,
-                clzs: this.clzs,
-                cljg: this.cljg,
+                startDate: this.year + '-' +'01',
+                endDate: this.year + '-' +'12',
+                area: this.area.toString(),
+                orderType:'1',
+                type:'0'
             }
             let name
             if(this.contrastCate2&&this.contrastCate2.length>0) {
-                data.cate_id = this.contrastCate2
-                data.pid = this.contrastCate1
+                data.id = this.contrastCate2
+                data.level = 2
                 this.cateList_two.forEach(item => {
                     if(item.id == this.contrastCate2) {
                         name = item.name
@@ -387,7 +515,8 @@ export default {
                     }
                 })
             } else if (this.contrastCate1&&this.contrastCate1.length>0) {
-                data.cate_id = this.contrastCate1
+                data.id = this.contrastCate1
+                data.level = 2
                 this.cateList.forEach(item => {
                     if(item.id == this.contrastCate1) {
                         name = item.name
@@ -401,19 +530,61 @@ export default {
                 });
                 return false
             }
-            const res = await api.get_month_data(data).data.data
-            res.forEach(son => {
-                if(/^\+?[1-9][0-9]*$/.test(son[0].add)) {
-                    this.areaList.forEach(area => {
-                        if(area.id == son[0].add) {
+            const res = await api.get_cate_data(data)
+            if(!res.data || res.data.length ==0) return
+            let ll = res.data
+            let area_list=[]
+            if(ll.length>0) {
+                ll.map(item => {
+                    let has = false
+                    if(area_list.length ==0) {
+                        area_list.push([])
+                    }
+                    area_list.map(arr => {
+                        if(arr.length ==0) {
+                            arr.push(item)
+                            has = true
+                        } else {
+                            if(arr[0].area == item.area) {
+                                arr.push(item)
+                                has = true
+                            } else {
+                                has = false
+                            }
+                        }
+                    })
+                    if(!has) {
+                        area_list.push([item])
+                    }
+                    //this.tableData = area_list
+                })
+            }
+            area_list.filter(son => {
+                this.areaList.forEach(area => {
+                    if(son[0].area.length > '2') {
+                        if(area.id == son[0].area) {
                             son[0].add = area.name
                             return
-                        }   
-                    })
+                        }
+                    } else {
+                        son[0].add = '全省'
+                    } 
+                })
+                let x = this.getMonthBetween(this.year+'-01', this.year+'-12')
+                for(let i =0, len = x.length;i<len;i++) {
+                    if(!son[i] || x[i] != son[i].asmdate.split(' ')[0].substr(0,7)) {
+                        son.splice(i,0,{
+                            price:'-',
+                            add:son[0].add
+                        })
+                    }
                 }
             })
-            const obj = {data:res, name: name, tab:'price',checked:false,id:data.cate_id}
-
+            const obj = {data:area_list, name: name, tab:'price',checked:false,id:data.id}
+            this.$message({
+                message: '已成功添加对比',
+                type: 'success'
+            });
             this.constractList.push(obj)
         },
         handleCheckAllChange(val) {
@@ -566,4 +737,14 @@ export default {
         margin-top 100px
         .iconfont 
             font-size 84px
+    .op 
+        height 0  
+        translate .3s  
+        border none
+    .show
+        height auto
+        translate .3s  
+    .pos 
+        position absolute
+        top 0
 </style>

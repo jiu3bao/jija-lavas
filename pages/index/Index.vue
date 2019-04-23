@@ -6,19 +6,18 @@
                 >
                 <span class='blue border-b'>{{area.name}}</span>
             </p>
-            <p class='time'>{{month[0].replace('-','.')}}-{{month[1].replace('-','.')}}</p>
+            <p class='time'>{{month.replace('-','.')}}-{{month.replace('-','.')}}</p>
         </div>
         <div class="time-picker" style='padding:4px 20px'>
             <span class="text">时间区间</span>
             <el-date-picker
-            v-model="month"
-            type="monthrange"
-            value-format='yyyy-MM'
-            range-separator="至"
-            start-placeholder="开始月份"
-            end-placeholder="结束月份"
-            :picker-options='options'
-            @change='get_cate_data'>
+                v-model="month"
+                type="month"
+                placeholder="选择月"
+                @change='get_cate_data'
+                :picker-options='options'
+                value-format='yyyy-MM'
+                >
             </el-date-picker>
         </div>
         <div style='height:100%;position:relative;padding-top:94px;box-sizing:border-box'>
@@ -31,11 +30,11 @@
                 <ul class='cate-list'>
                     <li class='first-level' v-for='(item,index) in cateList' :key='item.id'>
                         <p>{{item.name}}</p>
-                        <p>{{item.price}}</p>
+                        <p>{{item.price?Number(item.price).toFixed(2):'-'}}</p>
                         <p>
-                            {{item.huanbi}}% 
-                            <i class='iconfont iconicon-arrow-top4' v-if='item.huanbi>0'></i>
-                            <i class='iconfont iconicon-arrow-top4 trans' v-if='item.huanbi<0'></i>
+                            {{item.huanbi?(Number(item.huanbi)*100).toFixed(4):'-'}}% 
+                            <i class='iconfont iconicon-arrow-top4' v-if='Number(item.huanbi)>0'></i>
+                            <i class='iconfont iconicon-arrow-top4 trans' v-if='Number(item.huanbi)<0'></i>
                         </p>
                     </li>
                 </ul>
@@ -72,7 +71,7 @@ export default {
             month:[],
             options:{
                 disabledDate(time) {
-                    return time.getTime() > Date.now();
+                    return (time.getTime() > Date.now() || time.getFullYear()<2018);
                 },
             },
             cateList:[],
@@ -111,8 +110,7 @@ export default {
         let month = date.getMonth()+1
         let exmonth = date.getMonth()
         if(month<10) month = '0'+month
-        if(exmonth<10) exmonth = '0'+exmonth
-        this.month = [year+'-' + exmonth, year+'-' + month]
+        this.month = year+'-' + month
         this.get_cate_data()
         this.get_area()
         
@@ -124,9 +122,10 @@ export default {
         async get_cate_data() { //获取一级类及数据 
             this.loading = true
             const data = {
-                startTime: this.month[0],
-                endTime: this.month[1],
-                pid: 0,
+                startDate: this.month,
+                endDate: this.month,
+                pid: '0',
+                type:'0',
                 area: this.area_code,
             }
             const res = await api.get_cate_data(data)
@@ -135,13 +134,13 @@ export default {
         },
         scroll() {
             const _this = this
+             _this.scrollIndex++
+            if(_this.scrollIndex == _this.cateList.length) {
+                _this.scrollIndex =0
+            }
             $(".content ul").animate({"margin-top":"-"+40*this.scrollIndex+"px"}, function() {
-                _this.scrollIndex++
-                 
-                if(_this.scrollIndex == _this.cateList.length) {
-                    _this.scrollIndex =0
-                }
                 _this.map_data = _this.cateList[_this.scrollIndex].area_data
+                console.log(_this.cateList[_this.scrollIndex].name, _this.scrollIndex, _this.map_data[0].mat_name)
             });
         },
         start() {
@@ -153,6 +152,9 @@ export default {
             }, function() {
                 _this.start()
             });
+        },
+        stop() {
+            clearInterval(this.scrolling);
         },
         chose_area(val) {
             // this.area_code = val.id
@@ -168,7 +170,10 @@ export default {
         async get_area_data() {
             const data = {
                 area:this.area_code && this.area_code.length>0?this.area_code:'53',
-                level: '1'
+                level: '1',
+                startDate: this.month,
+                endDate: this.month,
+                type:'0'
             }
             const res = await api.get_area_data(data)
             const list = res.data
@@ -293,8 +298,14 @@ export default {
     width 400px
     margin auto
 
-.trans 
-    transform rotate(180deg)
+.trans:before
+    transform rotate(180deg) 
+    -webkit-transform rotate(180deg)
+    -moz-transform rotate(180deg)
+    -o-transform rotate(180deg)
+    -ms-transform rotate(180deg)
+    display inline-block
+    color #9FC88C !important 
 
 .content ul
     width 100%
