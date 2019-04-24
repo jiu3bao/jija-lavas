@@ -411,7 +411,6 @@ export default {
                     this.form.startTimeStr = this.form.bookDate[0]
                     this.form.endTimeStr = this.form.bookDate[1]
                     delete this.form.bookDate
-                    console.log(this.form)
                     api.add_sub(this.form).then(r => {
                         this.dialogFormVisible = false
                         this.$message({
@@ -437,7 +436,6 @@ export default {
     },
     beforeRouteEnter(to,from, next) {
         next(vm => {
-            console.log(vm.$store.state.login.token)
             if(vm.$store.state.login.token && vm.$store.state.login.token.length>0) {
                 
             } else {

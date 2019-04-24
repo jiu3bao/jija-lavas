@@ -94,7 +94,6 @@ export default {
         },
         async get_data() {
             const res = await api.get_help_detail({id: this.$route.query.id})
-            console.log(res)
         }
     },
 }

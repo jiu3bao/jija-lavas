@@ -1,10 +1,10 @@
 {
-    "buildVersion": 1555933968744,
+    "buildVersion": 1556079334551,
     "build": {
         "ssr": false,
-        "publicPath": "./",
-        "compress": true,
-        "cssExtract": true
+        "publicPath": "/",
+        "compress": false,
+        "cssExtract": false
     },
     "middleware": {
         "all": [],
@@ -13,7 +13,7 @@
     },
     "router": {
         "mode": "hash",
-        "base": "./",
+        "base": "/",
         "pageTransition": {
             "type": "fade",
             "transitionClass": "fade"

@@ -50,14 +50,15 @@ export default {
     data() {
         return {
             navList: [
+                // {
+                //     name: '我的首页',
+                //     icon: 'iconshouye',
+                //     router: '/'
+                // }, 
                 {
-                    name: '我的首页',
-                    icon: 'iconshouye',
-                    router: '/'
-                }, {
                     name: '月度数据',
                     icon: 'icontijianyuedufenxi',
-                    router: '/month-data'
+                    router: '/'
                 }, {
                     name: '季度数据',
                     icon: 'iconjidu',

@@ -298,7 +298,6 @@ export default {
                     delete this.form.cate
                     delete this.form.area
                     delete this.form.timeInterval
-                    console.log(this.form)
                     api.add_report(this.form).then(r => {
                         this.dialogFormVisible = false
                         this.$message({

@@ -138,7 +138,8 @@ export default {
     methods: {
         async get_data() {
             const data = {
-                id: this.$route.query.id
+                id: this.$route.query.id,
+                token: this.$store.state.login.token
             }
             const res = await api.get_reports_detail(data)
             this.detail = res.data
@@ -152,7 +153,8 @@ export default {
         add_mark() {
             const data = {
                 mark : this.detail.mark,
-                id: this.$route.query.id
+                id: this.$route.query.id,
+                token: this.$store.state.login.token
             }
             api.updata_report(data).then(() => {
                 this.$message({
@@ -166,7 +168,8 @@ export default {
         edit_mark() {
             const data = {
                 mark : this.mark,
-                id: this.$route.query.id
+                id: this.$route.query.id,
+                token: this.$store.state.login.token
             }
             api.updata_report(data).then(() => {
                 this.$message({

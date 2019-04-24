@@ -77,7 +77,7 @@
                                         :value="item.id">
                                     </el-option>
                                 </el-select>
-                                <el-button type='primary' class='ml-40' @click='contrast'>确定</el-button>
+                                <el-button type='primary' class='ml-40' @click='contrast'>查询</el-button>
                             </div>
                             <div style='text-align:right; flex-shirink:0;width:auto;color:#999;cursor:pointer' class='flex'>
                                 <el-checkbox :indeterminate="isIndeterminate" v-model="checkAll" @change="handleCheckAllChange">全选</el-checkbox>
@@ -440,7 +440,6 @@ export default {
             return result;  
         }, 
         init(x,y,lengend=[]) {
-            console.log(x,y,lengend)
             let myChart = echarts.init(document.getElementById('main'))
             const option = {
             title : {
@@ -485,7 +484,6 @@ export default {
                 {
                     type : 'value',
                     min:function(val){
-                        console.log(val)
                         return Math.floor(val.min)
                     }
                 }

@@ -1,316 +1,765 @@
 <template>
-    <div class="page-index" v-loading="loading">
+    <div style='height:100%;position:relative'>
         <div class='breadcrumb'>
-            <p @click='backYN'>云南省</p>
-            <p v-show='area.name&&area.name.length>0'>
+            <p>我的首页</p>
+            <p>
                 >
-                <span class='blue border-b'>{{area.name}}</span>
+                <span class='blue border-b'>月度数据</span>
             </p>
-            <p class='time'>{{month.replace('-','.')}}-{{month.replace('-','.')}}</p>
         </div>
-        <div class="time-picker" style='padding:4px 20px'>
-            <span class="text">时间区间</span>
+        <!--查询条件 start-->
+        <div class="time-picker" style='padding:4px 20px;'>
+            <span class="text">查询月份</span>
             <el-date-picker
                 v-model="month"
-                type="month"
-                placeholder="选择月"
-                @change='get_cate_data'
+                type="monthrange"
+                range-separator="至"
+                start-placeholder="开始月份"
+                end-placeholder="结束月份"
+                class='w-220'
                 :picker-options='options'
-                value-format='yyyy-MM'
-                >
+                value-format='yyyy-MM'>
             </el-date-picker>
+            <span class="text ml-40">地区</span>
+            <el-select v-model="area" placeholder="请选择" class='w-260' 
+                multiple collapse-tags>
+                <el-option
+                    v-for="item in areaList"
+                    :key="item.id"
+                    :label="item.name"
+                    :value="item.id">
+                </el-option>
+            </el-select>
+            <el-button type='primary' class='ml-40' @click='ref'>查询</el-button>
         </div>
-        <div style='height:100%;position:relative;padding-top:94px;box-sizing:border-box'>
-            <div class='list-head first-level'>
-                <p>材料</p>
-                <p>价格</p>
-                <p>涨跌</p>
-            </div>
-            <div class='content'>
-                <ul class='cate-list'>
-                    <li class='first-level' v-for='(item,index) in cateList' :key='item.id'>
-                        <p>{{item.name}}</p>
-                        <p>{{item.price?Number(item.price).toFixed(2):'-'}}</p>
-                        <p>
-                            {{item.huanbi?(Number(item.huanbi)*100).toFixed(4):'-'}}% 
-                            <i class='iconfont iconicon-arrow-top4' v-if='Number(item.huanbi)>0'></i>
-                            <i class='iconfont iconicon-arrow-top4 trans' v-if='Number(item.huanbi)<0'></i>
-                        </p>
-                    </li>
-                </ul>
-            </div>
-            <div class='map-box'>
-                <Map :areaList='areaList' :map_data='map_data' ></Map>
-                <img src='../../static/img/line.png'>
-            </div>
-        </div>
+        <!--查询条件 end-->
+        <el-container style='height:100%;box-sizing:border-box;padding-top:114px'>
+            <!--左侧分类树 start-->
+            <el-aside width="320px" style='border-radius:4px;background:#fff;margin-right:20px'>
+                <div class='list-title'>
+                    材料列表
+                </div>
+                <el-tree :data="cateList" :props="defaultProps" @node-click="handleNodeClick"></el-tree>
+            </el-aside>
+            <!--左侧分类树 end-->
+            
+            <el-container class='charts-main'>
+                <el-tabs v-model="activeName" style='height:100%'>
+                    <!--右侧折线图 start-->
+                    <el-tab-pane label="动态分析图" name="动态分析图" style='height:100%'>
+                        <h1 class='title'>{{activeName}}</h1>
+                        <div style='background:#fff;padding:40px;box-sizing:border-box;height:100%;box-shadow:0px 4px 8px 0px rgba(62,128,195,0.04);border-radius:4px;'>
+                            <div class='charts' id='main'></div>
+                            <div v-if='tableData.length ==0' class='nodata pos'>
+                                <i class='iconfont iconkongbaiye'></i>
+                                <p>没有找到相关数据</p>
+                            </div>
+                        </div>
+                    </el-tab-pane>
+                    <!--右侧折线图 end-->
+                    <!--右侧表格图 start-->
+                    <el-tab-pane label="数据统计表" name="数据统计表" style='height:100%'>
+                        <h1 class='title'>{{activeName}}</h1>
+                        <div class="flex-be w100 bg-white" 
+                            style='padding:4px 20px;box-sizing:border-box;box-shadow:0px 4px 8px 0px rgba(62,128,195,0.04);border-radius:4px;
+                                    position:relative'>
+                            <div class="time-picker" style='position: static'>
+                                <span class="text">新增对比</span>
+                                <el-select v-model="contrastCate1" placeholder="请选择一级材料大类" class='w-220'>
+                                    <el-option
+                                        v-for="item in cateList"
+                                        :key="item.id"
+                                        :label="item.name"
+                                        :value="item.id">
+                                    </el-option>
+                                </el-select>
+                                <el-select v-model="contrastCate2" placeholder="请选择二级对比材料" class='w-220 m-10'>
+                                    <el-option
+                                        v-for="item in cateList_two"
+                                        :key="item.id"
+                                        :label="item.name"
+                                        :value="item.id">
+                                    </el-option>
+                                </el-select>
+                                <el-button type='primary' class='ml-40' @click='contrast'>查询</el-button>
+                            </div>
+                            <div style='text-align:right; flex-shirink:0;width:auto;color:#999;cursor:pointer' class='flex'>
+                                <el-checkbox :indeterminate="isIndeterminate" v-model="checkAll" @change="handleCheckAllChange">全选</el-checkbox>
+                                <i class='iconfont iconicon' @click='delete_constract'></i>
+                            </div>
+                        </div>
+                        <div v-if='constractList.length ==0' class='nodata'>
+                            <i class='iconfont iconkongbaiye'></i>
+                            <p>没有找到相关数据</p>
+                        </div>
+                        <div v-for='(data,index) in constractList' :key='index' class='table'>
+                            <h1 class='title'>
+                                <el-checkbox v-model="data.checked"></el-checkbox>
+                                '{{data.name}}'详细数据表
+                                <i class='iconfont iconicon delete' @click='delet_item(index)'></i>
+                            </h1>
+                            <el-radio-group v-model="data.tab" style="margin-bottom: 30px;">
+                                <el-radio-button label="price">价格</el-radio-button>
+                                <el-radio-button label="exponent">指数</el-radio-button>
+                                <el-radio-button label="tongbi">同比</el-radio-button>
+                                <el-radio-button label="huanbi">环比</el-radio-button>
+                            </el-radio-group>
+                            <div v-for='tab in tabType' :key='tab'>
+                                <el-table
+                                    :class='data.tab==tab?"show":"op"'
+                                    :data="data.data"
+                                    style="width: 100%">
+                                    <el-table-column
+                                        prop="add"
+                                        label="地区"
+                                        width="150">
+                                        <template slot-scope="scoped">
+                                            {{scoped.row[0].add}}
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column label="时间" >
+                                        <el-table-column
+                                            v-for='(item, index) in data.data[0]'
+                                            :key='index'
+                                            prop="name"
+                                            :label="item.asmdate?item.asmdate.substr(0,7):''">
+                                            <template slot-scope="scoped" v-if='scoped.row[index][tab]'>
+                                                <span v-if="tab == 'price'">
+                                                    {{scoped.row[index][tab] != '-'?Number(scoped.row[index][tab]).toFixed(2):"-"}}
+                                                </span>
+                                                <span v-else>
+                                                    {{scoped.row[index][tab].length>0?Number(scoped.row[index][tab]).toFixed(4):'-'}}
+                                                </span>
+                                            </template>
+                                            <template v-else>
+                                                -
+                                            </template>
+                                        </el-table-column>
+                                    </el-table-column>
+                                </el-table>
+                            </div>
+                            
+                        </div>
+                        <!--右侧表格图 end-->
+                    </el-tab-pane>
+                </el-tabs>
+                <!--div class='bottom'>已经到底啦~</div-->
+            </el-container>
+            
+        </el-container>
+        <scrollTop class='position' v-if='showTop'></scrollTop>
     </div>
 </template>
 
 <script>
+import scrollTop from '../../components/scroll-top'
 import echarts from 'echarts'
-import $ from 'jquery'
-import Map from './map'
 import api from '../../api/api'
-function setState(store) {}
-
 export default {
-    name: 'index',
-    metaInfo: {
-        title: 'Home',
-        titleTemplate: '%s - Lavas',
-        meta: [
-            {name: 'keywords', content: 'lavas PWA'},
-            {name: 'description', content: '基于 Vue 的 PWA 解决方案，帮助开发者快速搭建 PWA 应用，解决接入 PWA 的各种问题'}
-        ]
-    },
     data() {
         return {
-            //area:this.$store.state.map.chosed_map.name,
-            // area_code:'',
-            month:[],
+            activeName:'动态分析图',
+            tabType:[
+                'price',
+                'exponent',
+                'tongbi',
+                'huanbi'
+            ],
             options:{
                 disabledDate(time) {
                     return (time.getTime() > Date.now() || time.getFullYear()<2018);
                 },
             },
-            cateList:[],
-            chosedCateId:'',
-            scrollIndex:0,
-            scrolling:null,//跑马灯计时器
             areaList:[],
-            map_data:[],
-            loading:false
-        }
-    },
-    computed:{
-        area() {
-            return this.$store.state.map.chosed_map
-        }
-    },
-    watch:{
-        area:{
-            handler(val) {
-                if(val.id) {
-                    this.area_code = val.id
-                } else {
-                    this.area_code = ''
-                }
-                this.get_cate_data()
+            area:[],
+            month:[],
+            chosed_cate:{},
+            cateList:[],
+            cateList_two:[],
+            defaultProps: {
+                children: 'childrenList',
+                label: 'name'
             },
-            deep:true
+            tableData:[],
+            tab:'price',
+            contrastCate1:'',
+            contrastCate2:'',
+            constractList:[],//对比的列表
+            checkAll:false,
+            isIndeterminate:true,
+            originChecked:false,
+            showTop:false,
+
         }
     },
     components:{
-        Map
+        scrollTop
     },
     created() {
+        // 设置默认时间 本月往前三个月
         const date = new Date()
         const year = date.getFullYear()
         let month = date.getMonth()+1
-        let exmonth = date.getMonth()
+        let exmonth = date.getMonth()-2
         if(month<10) month = '0'+month
-        this.month = year+'-' + month
-        this.get_cate_data()
+        if(exmonth<10) exmonth = '0'+exmonth
+        this.month = [year+'-' + exmonth, year+'-' + month]
         this.get_area()
-        
+        this.get_cate()
+    },
+    watch:{
+        // 监听是否选到一级大类  将2级类赋值
+        contrastCate1(val) {
+            this.contrastCate2 = ''
+            this.cateList.forEach(item => {
+                if(item.id == val) {
+                    this.cateList_two = item.childrenList
+                    return false
+                }
+            })
+        },
+        // 切换想选卡时 重新获取数据
+        activeName(val) {
+            this.tableData = []
+            this.get_data()
+        },
     },
     mounted() {
-        this.start()
+        this.$nextTick(function () {
+            //修改事件监听 展示回到顶部按钮
+            const main = document.getElementsByClassName('main')[0]
+            main.addEventListener('scroll', this.handleScroll)
+            
+        });
     },
     methods: {
-        async get_cate_data() { //获取一级类及数据 
-            this.loading = true
-            const data = {
-                startDate: this.month,
-                endDate: this.month,
-                pid: '0',
-                type:'0',
-                area: this.area_code,
+        handleScroll() {// 回到顶部按钮显示控制
+            const main = document.getElementsByClassName('main')[0]
+            const scrollTop = main.scrollTop || main.scrollTop
+            if(scrollTop > 200) {
+                this.showTop = true
+            } else {
+                this.showTop = false
             }
-            const res = await api.get_cate_data(data)
-            this.cateList = res.data
-            this.get_area_data()
         },
-        scroll() {
-            const _this = this
-             _this.scrollIndex++
-            if(_this.scrollIndex == _this.cateList.length) {
-                _this.scrollIndex =0
-            }
-            $(".content ul").animate({"margin-top":"-"+40*this.scrollIndex+"px"}, function() {
-                _this.map_data = _this.cateList[_this.scrollIndex].area_data
-                console.log(_this.cateList[_this.scrollIndex].name, _this.scrollIndex, _this.map_data[0].mat_name)
-            });
-        },
-        start() {
-            clearInterval(this.scrolling);
-            this.scrolling = setInterval(this.scroll, 5000);
-            const _this = this
-            $('.content').hover(function() {
-                clearInterval(_this.scrolling);
-            }, function() {
-                _this.start()
-            });
-        },
-        stop() {
-            clearInterval(this.scrolling);
-        },
-        chose_area(val) {
-            // this.area_code = val.id
-            // this.area = val.city
-        },
-        backYN() {
-            this.$store.commit('map/SET_CHOSED_MAP', {})
-        },
-        async get_area() {
-            const res = await api.get_area()
+        async get_area() { // 获取区域列表
+            const res = await api.get_area({})
             this.areaList = res.data
         },
-        async get_area_data() {
-            const data = {
-                area:this.area_code && this.area_code.length>0?this.area_code:'53',
-                level: '1',
-                startDate: this.month,
-                endDate: this.month,
-                type:'0'
+        async get_cate() { // 获取分类列表
+            const res = await api.get_cate()
+            this.cateList = res.data
+            this.cateList.map(item => {
+                this.cateList_two.push(...item.childrenList)
+            })
+            // 默认选中第一大类
+            this.handleNodeClick(this.cateList[0])
+        },
+        handleNodeClick(data) { // 分类选中 重新渲染echarts 保证数据与图
+            this.chosed_cate = data
+            this.constractList = []
+            this.tableData = []
+            let myChart = echarts.init(document.getElementById('main'))
+            myChart.dispose()
+            this.get_data()
+        },
+        ref() { // 查询
+            if(this.activeName != '数据统计表') {// 动态图时显示
+                let myChart = echarts.init(document.getElementById('main'))
+                myChart.dispose()
+                this.constractList = []
+                this.get_data()
+            } else { // 数据统计表时显示
+                if(this.constractList.length > 0) { // 当已有对比数据的时候 
+                    this.constractList.filter(item => { // 拿到每条对比数据的分类id  查询到相应数据
+                        let data = {
+                            startDate: this.month[0],
+                            endDate: this.month[1],
+                            area: this.area.toString(),
+                            id: item.id,
+                            orderType:'1',
+                            type:'0',
+                            level: this.chosed_cate.level?this.chosed_cate.level:'2'
+                        }
+                        api.get_cate_data(data).then(r => {
+                            if(!r.data || r.data.length ==0) {
+                                item.data = []
+                            } else { //将返回数据封装成[[每个区域的数据],[]...]
+                               let area_list=[]
+                                const ll = r.data
+                                if(ll.length>0) {
+                                    ll.map(item => {
+                                        let has = false
+                                        if(area_list.length ==0) {
+                                            area_list.push([])
+                                        }
+                                        area_list.map(arr => {
+                                            if(arr.length ==0) {
+                                                arr.push(item)
+                                                has = true
+                                            } else {
+                                                if(arr[0].area == item.area) {
+                                                    arr.push(item)
+                                                    has = true
+                                                } else {
+                                                    has = false
+                                                }
+                                            }
+                                        })
+                                        if(!has) {
+                                            area_list.push([item])
+                                        }
+                                    })
+                                }
+                                item.data = area_list // 将封装好的数据放到每个对比数据的data里
+                                item.data.filter(son => {// 给每条对比数据添加区域名称
+                                    if(son[0].area.length > '2') {
+                                        this.areaList.forEach(area => {
+                                            if(area.id == son[0].area) {
+                                                son[0].add = area.name
+                                                return
+                                            }
+                                        })
+                                    } else {
+                                        son[0].add = '全省'
+                                    }
+                                    let x = this.getMonthBetween(this.month[0], this.month[1]) // 获取选中的时间的区间列表
+                                    for(let i =0, len = x.length;i<len;i++) {// 给时间不全的数据填数据
+                                        if(!son[i] || x[i] != son[i].asmdate.split(' ')[0].substr(0,7)) {
+                                            son.splice(i,0,{
+                                                price:'-',
+                                                add:son[0].add
+                                            })
+                                        }
+                                    }
+                                }) 
+                            }
+                            
+                            
+
+                        })
+                    })
+                }
             }
-            const res = await api.get_area_data(data)
-            const list = res.data
-            // let cate = []
             
-            this.cateList.forEach(cate => {
-                cate.area_data = []
-                list.forEach(item => {
-                    if(cate.cid == item.mid) {
-                        cate.area_data.push(item)
+        },
+        async get_data() { // 获取分类数据
+            const data = {
+                startDate: this.month[0],
+                endDate: this.month[1],
+                area: this.area.toString(),
+                id: this.chosed_cate.id,
+                orderType:'1',
+                type:'0',
+                level: this.chosed_cate.level?this.chosed_cate.level:'2'
+            }
+            const res = await api.get_cate_data(data) 
+            if(!res.data || res.data.length ==0) {
+                this.tableData = []
+            } else {// 封装分类数据
+                const ll = res.data
+                let area_list=[]
+                if(ll.length>0) {
+                    ll.map(item => {
+                        let has = false
+                        if(area_list.length ==0) {
+                            area_list.push([])
+                        }
+                        area_list.map(arr => {
+                            if(arr.length ==0) {
+                                arr.push(item)
+                                has = true
+                            } else {
+                                if(arr[0].area == item.area) {
+                                    arr.push(item)
+                                    has = true
+                                } else {
+                                    has = false
+                                }
+                            }
+                        })
+                        if(!has) {
+                            area_list.push([item])
+                        }
+                        this.tableData = area_list
+                    })
+                }
+            }
+            
+            //只有在tab=='动态图表时渲染图'
+            if(this.tableData.length >0){
+                let lengend = []
+                let x =[], y=[]
+                this.tableData.filter(item => {
+                    let areaname ='全省'
+                    this.areaList.forEach(area => {
+                        if(area.id == item[0].area) {
+                            lengend.push(area.name)
+                            areaname = area.name
+                            item[0].add = areaname
+                            return
+                        } else {
+                            item[0].add = areaname
+                        }
+                    })
+                    let yy = []
+                    x = this.getMonthBetween(this.month[0], this.month[1])
+                    for(let i =0, len = x.length;i<len;i++) {
+                        if(!item[i] || x[i] != item[i].asmdate.split(' ')[0].substr(0,7)) {
+                            item.splice(i,0,{
+                                price:'-',
+                                add:item[0].add
+                            })
+                        }
+                    }
+                    item.forEach(data => {
+                        yy.push(data.price)
+                    })
+                    y.push({data:yy,type:'line',name:areaname})
+                })
+                
+                if(this.activeName == '数据统计表') {
+                    const obj = {data:this.tableData, name: this.chosed_cate.name, tab:'price',checked:false,id:this.chosed_cate.id}
+                    this.constractList = []
+                    this.constractList.push(obj)
+                    return 
+                }
+                this.init(x,y,lengend)
+            } else {
+                this.constractList = []
+            }
+        },
+        getMonthBetween(start,end){  // 获取两个时间中间的时间
+            let result = [];  
+            let s = start.split("-");  
+            let e = end.split("-");  
+            let min = new Date();  
+            let max = new Date();  
+            min.setFullYear(s[0],s[1]-1);  
+            max.setFullYear(e[0],e[1]-1);   
+            let curr = min; 
+            while(curr <= max){  
+                let month = curr.getMonth();  
+                let fm 
+                if(month<9&&month>=0) 
+                    { fm = '0'+(month+1)}
+
+                if(month < 0 || month >=9) { fm = month+1}
+                let str=curr.getFullYear()+"-"+(fm);
+                let s=curr.getFullYear()+"-0";
+                if(str==s){
+                    str=curr.getFullYear()+"-12";
+                }
+                result.push(str);  
+                curr.setMonth(month+1);
+            }  
+            return result;  
+        }, 
+        init(x,y,lengend=[]) { // 渲染图
+            console.log(x,y,lengend)
+             let myChart = echarts.init(document.getElementById('main'))
+            const option = {
+            title : {
+                text: '全省各地区“'+this.chosed_cate.name+'”趋势',
+                subtext: '基期指数值1000',
+                textStyle:{
+                    color: '#3577EC'
+                }
+            },
+            legend:{
+                data: lengend,
+                type: 'scroll',
+                bottom: '10px'
+            },
+            grid:{
+                top:'100px',
+                left:'40px',
+                right:'40px'
+            },
+            tooltip : {
+                trigger: 'axis',
+                position:[10,10]
+            },
+            toolbox: {
+                show : true,
+                feature : {
+                    magicType : {show: true, type: ['line', 'bar']},
+                    saveAsImage : {show: true}
+                }
+            },
+            calculable : true,
+            xAxis : [
+                {
+                    type : 'category',
+                    boundaryGap : false,
+                    data : x
+                }
+            ],
+            yAxis : [
+                {
+                    type : 'value',
+                    min:function(val){
+                        return Math.floor(val.min)
+                    }
+                }
+            ],
+            series : y
+            }
+
+            // 使用刚指定的配置项和数据显示图表。
+            myChart.setOption(option);
+        },
+        async contrast() { // 添加对比
+            let data = {
+                startDate: this.month[0],
+                endDate: this.month[1],
+                area: this.area.toString(),
+                orderType:'1',
+                type:'0',
+            }
+            let name
+            // 进行1类2类的判定
+            if(this.contrastCate2&&this.contrastCate2.length>0) {
+                data.id = this.contrastCate2
+                data.level = 2
+                this.cateList_two.forEach(item => {
+                    if(item.id == this.contrastCate2) {
+                        name = item.name
+                        return false
                     }
                 })
+            } else if (this.contrastCate1&&this.contrastCate1.length>0) {
+                data.id = this.contrastCate1
+                data.level = 1
+                this.cateList.forEach(item => {
+                    if(item.id == this.contrastCate1) {
+                        name = item.name
+                        return false
+                    }
+                })
+            } else {
+                this.$message({
+                    message: '请选择一个类别进行对比',
+                    type: 'warning'
+                });
+                return false
+            }
+            const res = await api.get_cate_data(data)
+            if(!res.data || res.data.length ==0) return
+            let ll = res.data
+            let area_list=[]
+            if(ll.length>0) {
+                ll.map(item => {
+                    let has = false
+                    if(area_list.length ==0) {
+                        area_list.push([])
+                    }
+                    area_list.map(arr => {
+                        if(arr.length ==0) {
+                            arr.push(item)
+                            has = true
+                        } else {
+                            if(arr[0].area == item.area) {
+                                arr.push(item)
+                                has = true
+                            } else {
+                                has = false
+                            }
+                        }
+                    })
+                    if(!has) {
+                        area_list.push([item])
+                    }
+                    //this.tableData = area_list
+                })
+            }
+            area_list.filter(son => {
+                this.areaList.forEach(area => {
+                    if(son[0].area.length > '2') {
+                        if(area.id == son[0].area) {
+                            son[0].add = area.name
+                            return
+                        }
+                    } else {
+                        son[0].add = '全省'
+                    } 
+                })
+                let x = this.getMonthBetween(this.month[0], this.month[1])
+                for(let i =0, len = x.length;i<len;i++) {
+                    if(!son[i] || x[i] != son[i].asmdate.split(' ')[0].substr(0,7)) {
+                        son.splice(i,0,{
+                            price:'-',
+                            add:son[0].add
+                        })
+                    }
+                }
             })
-            // list.forEach((item,index) => {
-            //     if(index == 0) {
-            //         let obj = {
-            //             cate_id: item.mid,
-            //             cate_name: item.mat_name,
-            //             area_data:[item]
-            //         }
-            //         cate.push(obj)
-            //     } else {
-            //         if(item.mid == list[index-1].mid) {
-            //             cate[cate.length-1].area_data.push(item)
-            //         } else {
-            //             let obj = {
-            //                 cate_id: item.mid,
-            //                 cate_name: item.mat_name,
-            //                 area_data:[item]
-            //             }
-            //             cate.push(obj)
-            //         }
-            //     }
-            // })
-            this.map_data = this.cateList[0].area_data
-            this.loading = false
+            const obj = {data:area_list, name: name, tab:'price',checked:false,id:data.id}
+            this.$message({
+                message: '已成功添加对比',
+                type: 'success'
+            });
+            this.constractList.push(obj)
+
+        },
+        handleCheckAllChange(val) { // 全选
+            if(val) {
+                this.constractList.filter(item => {
+                    item.checked = true
+                })
+            } else {
+                this.constractList.filter(item => {
+                    item.checked = false
+                })
+            }
+            this.isIndeterminate = false;
+        },
+        delete_constract() { // 删除对比
+            this.$confirm('是否删除所选表格信息?', '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }).then(() => {
+                let arr = []
+                this.constractList.map(item => {
+                    if(!item.checked) {
+                        arr.push(item)
+                    }
+                })
+                this.constractList = arr
+                this.$message({
+                    type: 'success',
+                    message: '删除成功!'
+                });
+            }).catch(() => {
+                this.$message({
+                    type: 'info',
+                    message: '已取消删除'
+                });          
+            });
+        },
+        delet_item(index) { // 删除单个表
+            this.$confirm('是否删除所选表格信息?', '提示', {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning'
+            }).then(() => {
+                this.constractList.splice(index,1)
+                this.$message({
+                    type: 'success',
+                    message: '删除成功!'
+                });
+            }).catch(() => {
+                this.$message({
+                    type: 'info',
+                    message: '已取消删除'
+                });          
+            });
         }
     },
-    updated() {
-        clearInterval(this.scrolling);
-        this.start()
-    },
-    beforeRouteLeave(to,from,next) {
-        clearInterval(this.scrolling);
+    beforeRouteLeave(to, from, next) {
+        const main = document.getElementsByClassName('main')[0]
+        main.removeEventListener('scroll',this.handleScroll)
         next()
     }
-};
+}
 </script>
 
 <style lang="stylus" scoped>
-.page-index
-    height 100%
-    position relative
-    h2
-        font-size 46px
-        font-weight 500
-        margin-bottom 0
-    
-.map-box 
-    height 100%
-    width 100%
-    padding-top 54px
-    text-align center
-    box-sizing border-box
-    img 
-        margin-top 40px
-        width:20%
+    h1
+        font-size 18px
+        text-align left
+        color #000
+        font-weight 400  
 
-.cate-list 
-    width 20%
-    height 242px
+    .list-title 
+        background #888D9C
+        color #fff
+        font-size 16px
+        line-height 50px
+        padding 0 20px
     
-    //overflow-y scroll
-    left 70%
-    top 120px
-    // background rgba(255,255,255,1)
-    color #333
+    .cate-list 
+        padding 14px
+        padding-right 0
+        text-align left
+        color #666
+        font-size 14px 
+        line-height 28px
+        li
+            cursor pointer
+            div 
+                padding 0 14px
+        .chosed>div
+            background rgba(245,247,250,1)
 
-.first-level 
-    display flex
-    align-items center
-    font-size 14px
-    color #333
-    //background #fff
-    line-height 40px
-    
-    box-sizing border-box
-    p 
-        width 40%
-        box-sizing border-box
-    p+p 
-        width 30%
-    .iconfont 
-        color #D82B0E
-
-.next-level
-    padding-left 5%
-    background #fff
-    li
-        display flex
-        align-items center
-        font-size 14px
-        color #333
+        .iconfont
+            font-size 8px
+            transition .3s
+            cursor pointer
+            width 8px
+        .transition:before
+            transform rotate(180deg)
+            
+        ul 
+            padding-left 20px
+    .charts
+        width 100%
+        height 435px 
+        margin-top 30px
+    .charts-main 
+        flex-direction column
+        div 
+            width 100%
+    .table
+        margin-top 20px
+        padding 44px 42px
+        // padding-left 42px
+        // padding-bottom 60px
         background #fff
-        line-height 48px
-        border-bottom 1px solid #EEF0F2
-        p 
-            width 33%
-            padding 0
+        box-sizing border-box
+        box-shadow 0px 4px 8px 0px rgba(62,128,195,0.04)
+        border-radius 4px
+        h1 
+            font-size 20px
+            font-weight 400
+            color rgba(53,119,236,1)
+            margin-bottom 40px
+    .position 
+        position fixed
+        bottom 55px
+        right 220px
+    .bottom 
+        padding 20px 0 42px 0
+        text-align center
+        font-size 16px
+        font-weight 400
+        color rgba(153,153,153,1)
+    .delete 
+        color #999
+        font-size 16px
+        float right
+        cursor pointer
+    .nodata 
+        width 100%
+        height 100%
+        display flex
+        flex-direction column
+        justify-content center
+        align-items center
+        font-size 18px
+        color #969EA5
+        margin-top 100px
         .iconfont 
-            color #D82B0E
-.content
-    width 400px
-    height 40px
-    overflow hidden
-    //border #333 solid 1px
-    margin auto
-    //position absolute
-    //box-shadow 0px 10px 12px 0px rgba(62,128,195,0.1)
-    //border-radius 4px
-.list-head
-    width 400px
-    margin auto
-
-.trans:before
-    transform rotate(180deg) 
-    -webkit-transform rotate(180deg)
-    -moz-transform rotate(180deg)
-    -o-transform rotate(180deg)
-    -ms-transform rotate(180deg)
-    display inline-block
-    color #9FC88C !important 
-
-.content ul
-    width 100%
-    height 100%
-    margin 0
-    padding 0
-
+            font-size 84px
+    .op 
+        height 0  
+        translate .3s  
+        border none
+    .show
+        height auto
+        translate .3s   
+    .pos 
+        position absolute
+        top 0
 </style>
